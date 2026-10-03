@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -11,6 +9,7 @@ import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../controllers/pond_health_controller.dart';
 import '../widgets/pond_common.dart';
+import '../widgets/trend_chart.dart';
 
 /// Laporan kesehatan tambak (FR-04.2) — gauge skor, tren scan/penyakit,
 /// alert penyakit berulang, scan terakhir, CTA scan baru.
@@ -213,70 +212,7 @@ class PondHealthView extends GetView<PondHealthController> {
               ),
             )
           else
-            SizedBox(
-              height: 150,
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    for (final point in trend) _trendBar(point, trend),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _trendBar(HealthTrendPoint point, List<HealthTrendPoint> trend) {
-    final peak = trend
-        .map((p) => math.max(p.scans, p.diseases.length))
-        .fold<int>(1, math.max);
-    final value = math.max(point.scans, point.diseases.length);
-    final barHeight = value == 0 ? 4.0 : 6.0 + (value / peak) * 74.0;
-    final hasDisease = point.diseases.isNotEmpty;
-    final color = hasDisease ? AppColors.accent : AppColors.primary;
-    return SizedBox(
-      width: 42,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        children: [
-          Text(
-            value == 0 ? '' : '$value',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: color,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Container(
-            width: 18,
-            height: barHeight,
-            decoration: BoxDecoration(
-              color: value == 0 ? AppColors.border : color,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(6),
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            shortDate(point.date),
-            style: const TextStyle(fontSize: 10.5, color: AppColors.textLight),
-          ),
-          SizedBox(
-            height: 26,
-            child: hasDisease
-                ? Tooltip(
-                    message: point.diseases.join(', '),
-                    child: const Icon(Icons.coronavirus_outlined,
-                        size: 13, color: AppColors.danger),
-                  )
-                : const SizedBox.shrink(),
-          ),
+            TrendChart(trend: trend),
         ],
       ),
     );
