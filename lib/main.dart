@@ -7,6 +7,7 @@ import 'core/services/auth_service.dart';
 import 'core/services/notification_service.dart';
 import 'core/theme/app_colors.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/theme_controller.dart';
 import 'routes/app_pages.dart';
 import 'routes/app_routes.dart';
 
@@ -41,6 +42,16 @@ Future<void> main() async {
   // Badge poller (API.md §9.2 — HTTP polling, no WebSocket).
   await Get.putAsync<NotificationService>(() => NotificationService().init(),
       permanent: true);
+
+  // Mode tampilan tersimpan (Terang/Gelap/Ikuti sistem).
+  await Get.putAsync<ThemeController>(
+    () async {
+      final c = ThemeController();
+      await c.init();
+      return c;
+    },
+    permanent: true,
+  );
 
   runApp(const NginguApp());
 }

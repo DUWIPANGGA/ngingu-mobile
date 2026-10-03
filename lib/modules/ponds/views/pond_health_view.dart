@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/models/pond_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_buttons.dart';
@@ -19,7 +20,7 @@ class PondHealthView extends GetView<PondHealthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Laporan Kesehatan')),
       body: SafeArea(child: Obx(_body)),
     );

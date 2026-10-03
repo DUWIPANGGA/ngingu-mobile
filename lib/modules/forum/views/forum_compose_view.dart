@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_buttons.dart';
@@ -19,7 +20,7 @@ class ForumComposeView extends GetView<ForumComposeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Buat Pertanyaan')),
       body: SafeArea(
         child: SingleChildScrollView(

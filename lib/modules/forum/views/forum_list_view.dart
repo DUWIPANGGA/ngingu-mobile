@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -17,7 +18,7 @@ class ForumListView extends GetView<ForumListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       floatingActionButton: FloatingActionButton(
         onPressed: controller.openCompose,
         backgroundColor: AppColors.primary,

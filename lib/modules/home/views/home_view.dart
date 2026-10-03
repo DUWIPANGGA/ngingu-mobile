@@ -9,6 +9,7 @@ import '../../../core/models/forum_model.dart';
 import '../../../core/models/scan_model.dart';
 import '../../../core/services/notification_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_avatar.dart';
@@ -26,7 +27,7 @@ class HomeView extends GetView<HomeController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       body: SafeArea(
         child: Obx(() {
           final data = controller.dashboard.value;

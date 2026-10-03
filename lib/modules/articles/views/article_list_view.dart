@@ -3,6 +3,7 @@ import 'package:get/get.dart';
 
 import '../../../core/models/article_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../controllers/article_list_controller.dart';
@@ -14,7 +15,7 @@ class ArticleListView extends GetView<ArticleListController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Artikel Edukasi')),
       body: SafeArea(
         child: Obx(() {
