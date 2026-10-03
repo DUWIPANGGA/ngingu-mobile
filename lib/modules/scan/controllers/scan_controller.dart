@@ -15,6 +15,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../routes/app_routes.dart';
+import '../widgets/photo_guide_sheet.dart';
 
 /// Scan tab root (FR-02): pilih 1-5 foto, kolam & jenis ikan opsional,
 /// lalu `POST /api/scans` (API.md 4.1) ke halaman proses.
@@ -148,6 +149,21 @@ class ScanController extends GetxController {
   }
 
   Future<void> pickFromCamera() async {
+    // Tampilkan panduan foto sekali per sesi agar akurasi model maksimal.
+    if (!_photoGuideShown) {
+      _photoGuideShown = true;
+      Get.bottomSheet(
+        PhotoGuideSheet(onContinue: _openCamera),
+        isScrollControlled: true,
+      );
+      return;
+    }
+    await _openCamera();
+  }
+
+  static bool _photoGuideShown = false;
+
+  Future<void> _openCamera() async {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       AppTheme.error(
