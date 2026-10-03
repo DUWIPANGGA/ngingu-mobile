@@ -30,6 +30,10 @@ class Routes {
   static const notifications = '/notifications';
   static const notificationSettings = '/notifications/settings';
 
+  // Artikel edukasi (FR-03.3)
+  static const articles = '/articles';
+  static const articleDetail = '/articles/detail'; // args: id (int/slug)
+
   // Profile & farm (FR-07/FR-08)
   static const editProfile = '/profile/edit';
   static const changePassword = '/profile/change-password';

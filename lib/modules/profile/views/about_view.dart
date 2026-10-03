@@ -4,6 +4,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/app_info_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -138,7 +139,7 @@ class _AboutViewState extends State<AboutView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Tentang Ngingu')),
       body: SafeArea(child: _buildBody()),
     );

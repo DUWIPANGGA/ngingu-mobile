@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../../../core/widgets/app_fields.dart';
@@ -15,7 +16,7 @@ class PondFormView extends GetView<PondFormController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(
         title: Text(controller.isEdit ? 'Ubah Tambak' : 'Tambah Tambak'),
       ),

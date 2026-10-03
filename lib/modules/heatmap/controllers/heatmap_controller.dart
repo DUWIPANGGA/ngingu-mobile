@@ -1,7 +1,9 @@
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 
 import '../../../core/models/alert_model.dart';
 import '../../../core/network/api_client.dart';
+import '../../../core/services/local_alert_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../routes/app_routes.dart';
 
@@ -37,6 +39,7 @@ class HeatmapController extends GetxController {
   /// Re-fetch heatmap + outbreak list (refresh action / retry).
   Future<void> fetchAll() async {
     await Future.wait([fetchHeatmap(), fetchOutbreaks()]);
+    _checkNearbyOutbreaks();
   }
 
   void clearSelection() => selectedPoint.value = null;
@@ -90,6 +93,54 @@ class HeatmapController extends GetxController {
   }
 
   // ── navigation ───────────────────────────────────────────────────────────
+
+  /// Sudah diperingatkan sesi ini (satu notifikasi per provinsi).
+  static final Set<String> _alertedProvinces = {};
+
+  /// Peringatan wabah sekitar: bila ada titik kasus ≤ 75 km dari lokasi
+  /// pengguna, tampilkan notifikasi lokal. Best-effort & diam bila
+  /// izin lokasi belum diberikan (tidak memaksa dialog izin di sini).
+  Future<void> _checkNearbyOutbreaks() async {
+    try {
+      if (points.isEmpty || outbreaks.isEmpty) return;
+      if (!await Geolocator.isLocationServiceEnabled()) return;
+      final permission = await Geolocator.checkPermission();
+      if (permission != LocationPermission.always &&
+          permission != LocationPermission.whileInUse) {
+        return; // izin lokasi opsional — lewati diam-diam.
+      }
+      final pos = await Geolocator.getCurrentPosition()
+          .timeout(const Duration(seconds: 8));
+      HeatmapPoint? nearest;
+      var nearestM = double.infinity;
+      for (final p in points) {
+        if (p.cases <= 0) continue;
+        final d = Geolocator.distanceBetween(
+            pos.latitude, pos.longitude, p.lat, p.lng);
+        if (d < nearestM) {
+          nearestM = d;
+          nearest = p;
+        }
+      }
+      if (nearest == null || nearestM > 75000) return;
+      if (!_alertedProvinces.add(nearest.province)) return;
+      final disease = nearest.topDisease?.isNotEmpty == true
+          ? nearest.topDisease!
+          : 'Penyakit ikan';
+      final shown = await LocalAlertService.showOutbreakNearby(
+        province: nearest.province,
+        disease: disease,
+        cases: nearest.cases,
+        km: nearestM / 1000,
+      );
+      if (!shown) {
+        AppTheme.info('Wabah di dekatmu',
+            '$disease terdeteksi di ${nearest.province} (${nearest.cases} kasus).');
+      }
+    } catch (_) {
+      // Best-effort — abaikan.
+    }
+  }
 
   /// Heatmap payload (API.md §7.11) hanya memuat `top_disease` (nama, tanpa
   /// id) — id penyakit dicocokkan dari feed `/api/outbreaks`.

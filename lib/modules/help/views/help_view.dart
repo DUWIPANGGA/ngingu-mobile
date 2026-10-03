@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/models/help_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../controllers/help_controller.dart';
@@ -14,7 +15,7 @@ class HelpView extends GetView<HelpController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Pusat Bantuan')),
       body: SafeArea(
         child: Obx(() {

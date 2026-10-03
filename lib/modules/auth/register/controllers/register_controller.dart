@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 import '../../../../core/network/api_client.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/google_auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../routes/app_routes.dart';
 
@@ -17,6 +18,7 @@ class RegisterController extends GetxController {
   final isConfirmPasswordHidden = true.obs;
   final isFormValid = false.obs;
   final isLoading = false.obs;
+  final isGoogleLoading = false.obs;
 
   @override
   void onInit() {
@@ -75,6 +77,32 @@ class RegisterController extends GetxController {
   }
 
   void goToLogin() => Get.back();
+
+  /// `POST /api/auth/google` — akun baru otomatis didaftarkan backend,
+  /// akun lama langsung login (satu tombol untuk daftar + masuk).
+  Future<void> registerWithGoogle() async {
+    if (isGoogleLoading.value || isLoading.value) return;
+    isGoogleLoading.value = true;
+    try {
+      final idToken = await GoogleAuthService.signInAndGetIdToken();
+      if (idToken == null) return; // user batal pilih akun
+      final res = await ApiClient.post<dynamic>(
+        '/auth/google',
+        data: {'id_token': idToken},
+      );
+      if (res.success && res.data is Map<String, dynamic>) {
+        await AuthService.setSession(AuthSession.fromJson(res.data));
+        AppTheme.success('Berhasil', 'Pendaftaran dengan Google berhasil');
+        Get.offAllNamed(Routes.mainNavigation);
+      } else {
+        AppTheme.error('Gagal', res.errorText);
+      }
+    } catch (e) {
+      AppTheme.error('Gagal', GoogleAuthService.friendlyErrorMessage(e));
+    } finally {
+      isGoogleLoading.value = false;
+    }
+  }
 
   @override
   void onClose() {

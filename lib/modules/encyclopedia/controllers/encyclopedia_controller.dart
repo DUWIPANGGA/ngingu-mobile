@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../../core/models/disease_model.dart';
 import '../../../core/network/api_client.dart';
@@ -18,6 +20,9 @@ class EncyclopediaController extends GetxController {
   final RxnString errorMessage = RxnString();
   final RxString severityFilter = ''.obs;
   final RxBool hasQuery = false.obs;
+
+  /// True bila daftar berasal dari cache offline.
+  final RxBool isOffline = false.obs;
 
   /// Filter chips — API.md §5.1 `severity=ringan|sedang|berat|kritis`.
   static const List<Map<String, String>> severityOptions =
@@ -129,13 +134,25 @@ class EncyclopediaController extends GetxController {
       final list = res.data ?? const <DiseaseItem>[];
       if (reset) {
         items.assignAll(list);
+        isOffline.value = false;
+        if (_query.isEmpty && severityFilter.value.isEmpty && _page == 1) {
+          _saveCache(list);
+        }
       } else {
         items.addAll(list);
       }
       _lastPage = res.lastPage < 1 ? 1 : res.lastPage;
     } else {
       if (!reset) _page--; // keep pagination in sync after a failed load-more
-      if (items.isEmpty) errorMessage.value = res.errorText;
+      if (items.isEmpty) {
+        final cached = await _loadCache();
+        if (cached.isNotEmpty) {
+          items.assignAll(cached);
+          isOffline.value = true;
+        } else {
+          errorMessage.value = res.errorText;
+        }
+      }
     }
 
     isLoading.value = false;
@@ -149,6 +166,29 @@ class EncyclopediaController extends GetxController {
 
   static List<DiseaseItem> _parseList(dynamic json) =>
       (json as List).map(DiseaseItem.fromJson).toList();
+
+  static const _cacheKey = 'diseases_cache_v1';
+
+  Future<void> _saveCache(List<DiseaseItem> list) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(
+          _cacheKey, jsonEncode(list.map((e) => e.toJson()).toList()));
+    } catch (_) {
+      // Cache opsional — abaikan.
+    }
+  }
+
+  Future<List<DiseaseItem>> _loadCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_cacheKey);
+      if (raw == null || raw.isEmpty) return const [];
+      return (jsonDecode(raw) as List).map(DiseaseItem.fromJson).toList();
+    } catch (_) {
+      return const [];
+    }
+  }
 
   void _onScroll() {
     if (!scrollController.hasClients) return;

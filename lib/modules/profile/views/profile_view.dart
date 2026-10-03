@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../../core/models/user_model.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_controller.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_badges.dart';
@@ -21,7 +23,7 @@ class ProfileView extends GetView<ProfileController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       body: SafeArea(
         child: Obx(() {
           if (AuthService.isGuest) return _guestBody();
@@ -100,6 +102,15 @@ class ProfileView extends GetView<ProfileController> {
                 title: 'Pusat Bantuan',
                 subtitle: 'Kontak dan pertanyaan umum',
                 onTap: () => Get.toNamed(Routes.help),
+              ),
+              const Divider(indent: 70),
+              Obx(
+                () => MenuRow(
+                  icon: Icons.dark_mode_outlined,
+                  title: 'Tampilan',
+                  subtitle: ThemeController.to.label,
+                  onTap: ThemeController.to.showPicker,
+                ),
               ),
               const Divider(indent: 70),
               MenuRow(
@@ -197,6 +208,15 @@ class ProfileView extends GetView<ProfileController> {
                   title: 'Pengaturan Notifikasi',
                   onTap: () => Get.toNamed(Routes.notificationSettings),
                 ),
+                const Divider(indent: 70),
+                Obx(
+                  () => MenuRow(
+                    icon: Icons.dark_mode_outlined,
+                    title: 'Tampilan',
+                    subtitle: ThemeController.to.label,
+                    onTap: ThemeController.to.showPicker,
+                  ),
+                ),
               ],
             ),
           ),
@@ -217,6 +237,13 @@ class ProfileView extends GetView<ProfileController> {
                   title: 'Peta Sebaran',
                   subtitle: 'Sebaran penyakit per provinsi',
                   onTap: () => Get.toNamed(Routes.heatmap),
+                ),
+                const Divider(indent: 70),
+                MenuRow(
+                  icon: Icons.article_outlined,
+                  title: 'Artikel Edukasi',
+                  subtitle: 'Panduan budidaya & kesehatan ikan',
+                  onTap: () => Get.toNamed(Routes.articles),
                 ),
               ],
             ),

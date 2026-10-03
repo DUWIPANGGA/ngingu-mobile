@@ -1,5 +1,6 @@
 import 'package:get/get.dart';
 
+import '../../../core/models/article_model.dart';
 import '../../../core/models/dashboard_model.dart';
 import '../../../core/network/api_client.dart';
 import '../../../core/services/auth_service.dart';
@@ -13,6 +14,9 @@ class HomeController extends GetxController {
   final RxnString errorMessage = RxnString();
   final Rxn<Dashboard> dashboard = Rxn<Dashboard>();
   final RxString period = '7d'.obs;
+
+  /// Artikel edukasi terbaru (publik — tampil juga untuk tamu).
+  final RxList<Article> articles = <Article>[].obs;
 
   /// `?period=` switcher values (API.md FR-07.4).
   static const List<String> periods = <String>['7d', '30d', '90d'];
@@ -32,6 +36,19 @@ class HomeController extends GetxController {
   void onInit() {
     super.onInit();
     load();
+    loadArticles();
+  }
+
+  /// Artikel terbaru untuk seksi home (gagal diam-diam — seksi disembunyikan).
+  Future<void> loadArticles() async {
+    final res = await ApiClient.get<List<Article>>(
+      '/articles',
+      query: {'per_page': 5},
+      parse: (json) => (json as List).map(Article.fromJson).toList(),
+    );
+    if (res.success && res.data != null) {
+      articles.assignAll(res.data!);
+    }
   }
 
   /// Fetches the dashboard. [silent] keeps the current data on screen
@@ -111,4 +128,11 @@ class HomeController extends GetxController {
     if (id == null) return;
     Get.toNamed(Routes.diseaseDetail, arguments: {'id': id});
   }
+
+  void openArticles() => Get.toNamed(Routes.articles);
+
+  void openArticle(Article item) => Get.toNamed(
+        Routes.articleDetail,
+        arguments: {'id': item.id ?? item.slug},
+      );
 }

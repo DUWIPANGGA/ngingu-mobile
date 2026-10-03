@@ -5,6 +5,7 @@ import 'package:latlong2/latlong.dart';
 
 import '../../../core/models/alert_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/time_utils.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -19,7 +20,7 @@ class HeatmapView extends GetView<HeatmapController> {
   Widget build(BuildContext context) {
     final mapHeight = MediaQuery.sizeOf(context).height * 0.45;
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(
         title: const Text('Peta Sebaran Penyakit'),
         actions: [
@@ -461,6 +462,7 @@ class HeatmapView extends GetView<HeatmapController> {
       return SizedBox(
         height: 160,
         child: ErrorState(
+          compact: true,
           message: controller.outbreaksError.value!,
           onRetry: controller.fetchOutbreaks,
         ),
@@ -470,6 +472,7 @@ class HeatmapView extends GetView<HeatmapController> {
       return const SizedBox(
         height: 160,
         child: EmptyState(
+          compact: true,
           icon: Icons.notifications_active_outlined,
           title: 'Belum ada alert wabah',
           subtitle: 'Belum ada wabah penyakit yang terdeteksi saat ini.',

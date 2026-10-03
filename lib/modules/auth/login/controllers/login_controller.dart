@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 
 import '../../../../core/network/api_client.dart';
 import '../../../../core/models/user_model.dart';
 import '../../../../core/services/auth_service.dart';
+import '../../../../core/services/google_auth_service.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../routes/app_routes.dart';
 
@@ -17,12 +17,6 @@ class LoginController extends GetxController {
   final isFormValid = false.obs;
   final isLoading = false.obs;
   final isGoogleLoading = false.obs;
-
-  final _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-    serverClientId:
-        '192572861773-qfpnedaikjredjpskhd4pofuibg2ivd8.apps.googleusercontent.com',
-  );
 
   @override
   void onInit() {
@@ -56,27 +50,20 @@ class LoginController extends GetxController {
     await _handleSession(res, 'Login berhasil');
   }
 
-  /// `POST /api/auth/google` (API.md Ãƒâ€šÃ‚Â§3.2) ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â backend expects `id_token`.
+  /// `POST /api/auth/google` (API.md §3.2) — backend expects `id_token`.
   Future<void> loginWithGoogle() async {
     if (isGoogleLoading.value || isLoading.value) return;
     isGoogleLoading.value = true;
     try {
-      await _googleSignIn.signOut();
-      final googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return; // cancelled
-      final googleAuth = await googleUser.authentication;
-      final idToken = googleAuth.idToken;
-      if (idToken == null) {
-        AppTheme.error('Gagal', 'Gagal mendapatkan token Google. Coba lagi.');
-        return;
-      }
+      final idToken = await GoogleAuthService.signInAndGetIdToken();
+      if (idToken == null) return; // cancelled
       final res = await ApiClient.post<dynamic>(
         '/auth/google',
         data: {'id_token': idToken},
       );
       await _handleSession(res, 'Login dengan Google berhasil');
     } catch (e) {
-      AppTheme.error('Gagal', 'Login Google gagal. Coba lagi.');
+      AppTheme.error('Gagal', GoogleAuthService.friendlyErrorMessage(e));
     } finally {
       isGoogleLoading.value = false;
     }

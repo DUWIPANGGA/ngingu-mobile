@@ -4,10 +4,12 @@ import 'package:get/get.dart';
 
 import '../../../core/models/disease_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_fields.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../controllers/encyclopedia_controller.dart';
 
 /// Ensiklopedia penyakit — publik & bisa dibuka tamu (API.md §5.1, FR-03.1).
@@ -17,7 +19,7 @@ class EncyclopediaView extends GetView<EncyclopediaController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       body: SafeArea(
         child: Column(
           children: [
@@ -94,7 +96,7 @@ class EncyclopediaView extends GetView<EncyclopediaController> {
       final items = controller.items;
 
       if (controller.isLoading.value && items.isEmpty) {
-        return const LoadingState(message: 'Memuat daftar penyakit...');
+        return const DiseaseListSkeleton();
       }
       if (controller.errorMessage.value != null && items.isEmpty) {
         return ErrorState(
@@ -118,6 +120,13 @@ class EncyclopediaView extends GetView<EncyclopediaController> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
+            if (controller.isOffline.value) ...[
+              const AppBanner(
+                message: 'Mode offline — menampilkan data terakhir tersimpan.',
+                icon: Icons.cloud_off_outlined,
+              ),
+              const SizedBox(height: 10),
+            ],
             if (controller.isLoading.value)
               const Padding(
                 padding: EdgeInsets.only(bottom: 10),

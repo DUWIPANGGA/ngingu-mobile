@@ -15,6 +15,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/image_utils.dart';
 import '../../../routes/app_routes.dart';
+import '../widgets/photo_guide_sheet.dart';
 
 /// Scan tab root (FR-02): pilih 1-5 foto, kolam & jenis ikan opsional,
 /// lalu `POST /api/scans` (API.md 4.1) ke halaman proses.
@@ -24,6 +25,7 @@ class ScanController extends GetxController {
   final RxList<XFile> picked = <XFile>[].obs;
   final RxBool isSubmitting = false.obs;
   final RxList<Pond> ponds = <Pond>[].obs;
+  final RxBool pondsLoading = false.obs;
   final RxString selectedPondId = ''.obs;
 
   final TextEditingController fishTypeController = TextEditingController();
@@ -35,18 +37,57 @@ class ScanController extends GetxController {
   void onInit() {
     super.onInit();
     if (AuthService.isAuthed) ensurePonds();
+    // Muat ulang kolam saat status login berubah (mis. tamu → masuk
+    // tanpa controller dibuat ulang).
+    ever<bool>(AuthService.isLoggedInObs, (_) {
+      if (AuthService.isAuthed) {
+        _pondsRequested = false;
+        ensurePonds();
+      }
+    });
   }
 
   /// `GET /api/ponds?per_page=100` - field opsional, kegagalan diabaikan.
   Future<void> ensurePonds() async {
-    if (_pondsRequested) return;
+    if (_pondsRequested || !AuthService.isAuthed) return;
     _pondsRequested = true;
+    pondsLoading.value = true;
     final res = await ApiClient.get<List<Pond>>(
       '/ponds',
       query: {'per_page': 100},
       parse: (json) => (json as List).map(Pond.fromJson).toList(),
     );
-    if (res.success && res.data != null) ponds.assignAll(res.data!);
+    pondsLoading.value = false;
+    if (res.success && res.data != null) {
+      ponds.assignAll(res.data!);
+      // Pilihan basi (kolam dihapus) → kembali ke Tanpa kolam.
+      if (selectedPondId.value.isNotEmpty &&
+          ponds.every((p) => p.id != selectedPondId.value)) {
+        selectedPondId.value = '';
+      }
+    }
+  }
+
+  /// Muat ulang daftar kolam (dipakai setelah tambah kolam).
+  Future<void> refreshPonds() async {
+    _pondsRequested = false;
+    await ensurePonds();
+  }
+
+  /// Kolam terpilih saat ini (null = Tanpa kolam / tidak ada).
+  Pond? get selectedPond {
+    final id = selectedPondId.value;
+    if (id.isEmpty) return null;
+    for (final p in ponds) {
+      if (p.id == id) return p;
+    }
+    return null;
+  }
+
+  /// Buka form tambah kolam, lalu muat ulang daftar saat kembali.
+  Future<void> openPondForm() async {
+    await Get.toNamed(Routes.pondForm);
+    await refreshPonds();
   }
 
   // -- pemilihan foto --------------------------------------------------------
@@ -108,6 +149,21 @@ class ScanController extends GetxController {
   }
 
   Future<void> pickFromCamera() async {
+    // Tampilkan panduan foto sekali per sesi agar akurasi model maksimal.
+    if (!_photoGuideShown) {
+      _photoGuideShown = true;
+      Get.bottomSheet(
+        PhotoGuideSheet(onContinue: _openCamera),
+        isScrollControlled: true,
+      );
+      return;
+    }
+    await _openCamera();
+  }
+
+  static bool _photoGuideShown = false;
+
+  Future<void> _openCamera() async {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
       AppTheme.error(

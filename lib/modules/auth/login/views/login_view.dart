@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_buttons.dart';
 import '../../../../core/widgets/app_fields.dart';
+import '../../../../core/widgets/google_logo.dart';
 import '../../../../core/widgets/ngingu_logo.dart';
 import '../controllers/login_controller.dart';
 
@@ -138,8 +139,7 @@ class LoginView extends GetView<LoginController> {
                               height: 18,
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
-                          : const Icon(Icons.g_mobiledata_rounded,
-                              size: 28, color: AppColors.textPrimary),
+                          : const GoogleLogo(size: 22),
                       label: const Text(
                         'Lanjutkan dengan Google',
                         style: TextStyle(

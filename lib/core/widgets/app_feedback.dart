@@ -28,6 +28,9 @@ class LoadingState extends StatelessWidget {
 }
 
 /// Empty-state placeholder with icon + hint.
+///
+/// Set [compact] when placed inside a fixed-height box (< ~230px),
+/// e.g. the 160px cards on the heatmap screen.
 class EmptyState extends StatelessWidget {
   const EmptyState({
     super.key,
@@ -36,6 +39,7 @@ class EmptyState extends StatelessWidget {
     this.subtitle,
     this.actionLabel,
     this.onAction,
+    this.compact = false,
   });
 
   final IconData icon;
@@ -43,36 +47,44 @@ class EmptyState extends StatelessWidget {
   final String? subtitle;
   final String? actionLabel;
   final VoidCallback? onAction;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        padding: EdgeInsets.symmetric(
+            horizontal: 32, vertical: compact ? 12 : 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(compact ? 12 : 18),
               decoration: BoxDecoration(
                 color: AppColors.softSky,
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, size: 34, color: AppColors.primary),
+              child: Icon(icon,
+                  size: compact ? 26 : 34, color: AppColors.primary),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: compact ? 10 : 16),
             Text(
               title,
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontSize: compact ? 14 : 15.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary),
             ),
             if (subtitle != null) ...[
               const SizedBox(height: 6),
               Text(
                 subtitle!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+                style: TextStyle(
+                    fontSize: compact ? 12.5 : 13,
+                    color: AppColors.textSecondary,
+                    height: 1.5),
               ),
             ],
             if (actionLabel != null && onAction != null) ...[
@@ -86,45 +98,54 @@ class EmptyState extends StatelessWidget {
   }
 }
 
-/// Error state with retry.
+/// Error state with retry. Set [compact] inside fixed-height boxes.
 class ErrorState extends StatelessWidget {
   const ErrorState({
     super.key,
     required this.message,
     this.onRetry,
     this.icon = Icons.wifi_off_rounded,
+    this.compact = false,
   });
 
   final String message;
   final VoidCallback? onRetry;
   final IconData icon;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 40),
+        padding: EdgeInsets.symmetric(
+            horizontal: 32, vertical: compact ? 12 : 40),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(compact ? 12 : 18),
               decoration:
                   const BoxDecoration(color: AppColors.softRed, shape: BoxShape.circle),
-              child: Icon(icon, size: 34, color: AppColors.danger),
+              child: Icon(icon,
+                  size: compact ? 26 : 34, color: AppColors.danger),
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: compact ? 10 : 16),
             Text(
               'Ups, terjadi kesalahan',
               textAlign: TextAlign.center,
-              style: const TextStyle(
-                  fontSize: 15.5, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+              style: TextStyle(
+                  fontSize: compact ? 14 : 15.5,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, height: 1.5),
+              style: TextStyle(
+                  fontSize: compact ? 12.5 : 13,
+                  color: AppColors.textSecondary,
+                  height: 1.5),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 18),

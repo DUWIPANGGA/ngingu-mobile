@@ -3,11 +3,14 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
+import '../../../core/models/pond_model.dart';
 import '../../../core/services/auth_service.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_fields.dart';
+import '../../ponds/widgets/pond_common.dart';
 import '../../../routes/app_routes.dart';
 import '../controllers/scan_controller.dart';
 
@@ -19,7 +22,7 @@ class ScanView extends GetView<ScanController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(
         title: const Text('Scan Penyakit'),
         actions: [
@@ -34,7 +37,6 @@ class ScanView extends GetView<ScanController> {
       body: SafeArea(
         child: Obx(() {
           if (!AuthService.isAuthed) return _loginCard();
-          controller.ensurePonds();
           return _form();
         }),
       ),
@@ -138,16 +140,7 @@ class ScanView extends GetView<ScanController> {
           const SizedBox(height: 22),
           const SectionHeader(title: 'Informasi Tambahan'),
           const SizedBox(height: 4),
-          const Text(
-            'Kolam',
-            style: TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              color: AppColors.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 6),
-          _pondDropdown(),
+          _pondSection(),
           const SizedBox(height: 16),
           AppTextField(
             label: 'Jenis Ikan',
@@ -283,6 +276,239 @@ class ScanView extends GetView<ScanController> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Pilihan kolam: tanpa kolam selalu tersedia, daftar kolam user bila
+  /// ada, plus jalan pintas tambah kolam bila daftar masih kosong.
+  Widget _pondSection() {
+    return Obx(() {
+      final loading =
+          controller.pondsLoading.value && controller.ponds.isEmpty;
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Text(
+                'Kolam (opsional)',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+              const Spacer(),
+              if (!loading && controller.ponds.isNotEmpty)
+                TextButton(
+                  onPressed: controller.openPondForm,
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: const Text(
+                    '＋ Kolam baru',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primaryDark,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          if (loading)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 15),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border),
+              ),
+              child: const Text(
+                'Memuat kolam…',
+                style: TextStyle(
+                    fontSize: 14.5, color: AppColors.textSecondary),
+              ),
+            )
+          else if (controller.ponds.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: AppColors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.4),
+                  width: 1.2,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Row(
+                    children: [
+                      Icon(Icons.water_outlined,
+                          size: 18, color: AppColors.primary),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Scan tanpa kolam',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Belum ada kolam. Hasil scan tetap tersimpan, '
+                    'tapi tren kesehatan per tambak butuh kolam.',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      color: AppColors.textSecondary,
+                      height: 1.45,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  SecondaryButton(
+                    label: 'Buat Kolam',
+                    icon: Icons.add_rounded,
+                    expand: false,
+                    onPressed: controller.openPondForm,
+                  ),
+                ],
+              ),
+            )
+          else
+            _pondDropdown(),
+          if (!loading && controller.ponds.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            const Text(
+              'Pilih kolam asal ikan, atau biarkan "Tanpa kolam".',
+              style: TextStyle(fontSize: 11.5, color: AppColors.textLight),
+            ),
+          ],
+          Obx(() {
+            final selected = controller.selectedPond;
+            if (selected == null) return const SizedBox.shrink();
+            return _selectedPondCard(selected);
+          }),
+        ],
+      );
+    });
+  }
+
+  /// Kartu ringkasan kolam terpilih — gaya sama seperti kartu Tanpa kolam.
+  Widget _selectedPondCard(Pond pond) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.secondary.withValues(alpha: 0.5),
+          width: 1.2,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: const BoxDecoration(
+                  color: AppColors.softGreen,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.water_outlined,
+                    size: 18, color: AppColors.secondary),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      pond.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
+                    const Text(
+                      'Kolam dipakai untuk scan ini',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (pond.healthScore != null)
+                HealthScoreRing(score: pond.healthScore, size: 44),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 6,
+            runSpacing: 6,
+            children: [
+              if (pond.areaM2 != null)
+                PondInfoChip(
+                  icon: Icons.straighten_outlined,
+                  label: '${idNumber(pond.areaM2!)} m²',
+                ),
+              if (pond.capacity != null)
+                PondInfoChip(
+                  icon: Icons.group_outlined,
+                  label: '${idNumber(pond.capacity!)} ekor',
+                ),
+              for (final fish in pond.fishTypes.take(3))
+                PondInfoChip(icon: Icons.pets_outlined, label: fish),
+              if (pond.scansCount != null)
+                PondInfoChip(
+                  icon: Icons.center_focus_weak,
+                  label: '${pond.scansCount} scan',
+                ),
+            ],
+          ),
+          if ((pond.locationLabel ?? '').isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.place_outlined,
+                    size: 14, color: AppColors.textLight),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    pond.locationLabel!,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: AppColors.textSecondary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ),
     );
   }

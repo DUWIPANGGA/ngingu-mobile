@@ -4,6 +4,7 @@ import 'package:get/get.dart';
 
 import '../../../core/models/disease_model.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/theme/theme_x.dart';
 import '../../../core/utils/image_helper.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
@@ -16,7 +17,7 @@ class DiseaseDetailView extends GetView<DiseaseDetailController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.surface,
+      backgroundColor: context.page,
       appBar: AppBar(title: const Text('Detail Penyakit')),
       body: Obx(() {
         final data = controller.detail.value;
