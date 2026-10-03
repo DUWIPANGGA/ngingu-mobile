@@ -5,6 +5,7 @@ import 'package:get/get.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/app_buttons.dart';
 import '../../../../core/widgets/app_fields.dart';
+import '../../../../core/widgets/google_logo.dart';
 import '../controllers/register_controller.dart';
 
 class RegisterView extends GetView<RegisterController> {
@@ -114,6 +115,48 @@ class RegisterView extends GetView<RegisterController> {
                       loading: controller.isLoading.value,
                       onPressed:
                           controller.isFormValid.value ? controller.register : null,
+                    )),
+                const SizedBox(height: 18),
+                const Row(
+                  children: [
+                    Expanded(child: Divider(color: AppColors.border)),
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('atau',
+                          style: TextStyle(
+                              fontSize: 12, color: AppColors.textSecondary)),
+                    ),
+                    Expanded(child: Divider(color: AppColors.border)),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Obx(() => OutlinedButton.icon(
+                      onPressed: controller.isGoogleLoading.value ||
+                              controller.isLoading.value
+                          ? null
+                          : controller.registerWithGoogle,
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52),
+                        side: const BorderSide(color: AppColors.border),
+                        backgroundColor: AppColors.white,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14)),
+                      ),
+                      icon: controller.isGoogleLoading.value
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const GoogleLogo(size: 22),
+                      label: const Text(
+                        'Daftar dengan Google',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 15,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
                     )),
                 const SizedBox(height: 14),
                 const Text(
