@@ -124,6 +124,21 @@ class DiseaseItem {
       snippet: j['snippet'] as String?,
     );
   }
+
+  /// Untuk cache offline (SharedPreferences).
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        'slug': slug,
+        'category': category,
+        'severity': severity,
+        'thumbnail_url': thumbnailUrl,
+        'fish_types': fishTypes,
+        'recovery_days': recoveryDays == null
+            ? null
+            : {'min': recoveryDays!.min, 'max': recoveryDays!.max},
+        'snippet': snippet,
+      };
 }
 
 /// Full detail payload (§5.2).

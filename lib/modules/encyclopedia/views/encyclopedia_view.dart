@@ -118,6 +118,13 @@ class EncyclopediaView extends GetView<EncyclopediaController> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
+            if (controller.isOffline.value) ...[
+              const AppBanner(
+                message: 'Mode offline — menampilkan data terakhir tersimpan.',
+                icon: Icons.cloud_off_outlined,
+              ),
+              const SizedBox(height: 10),
+            ],
             if (controller.isLoading.value)
               const Padding(
                 padding: EdgeInsets.only(bottom: 10),
