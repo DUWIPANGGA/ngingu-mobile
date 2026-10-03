@@ -218,6 +218,13 @@ class ProfileView extends GetView<ProfileController> {
                   subtitle: 'Sebaran penyakit per provinsi',
                   onTap: () => Get.toNamed(Routes.heatmap),
                 ),
+                const Divider(indent: 70),
+                MenuRow(
+                  icon: Icons.article_outlined,
+                  title: 'Artikel Edukasi',
+                  subtitle: 'Panduan budidaya & kesehatan ikan',
+                  onTap: () => Get.toNamed(Routes.articles),
+                ),
               ],
             ),
           ),

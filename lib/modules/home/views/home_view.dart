@@ -15,6 +15,7 @@ import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../articles/views/article_list_view.dart';
 import '../controllers/home_controller.dart';
 
 /// Beranda / dashboard (API.md §7.1, FR-07).
@@ -37,6 +38,7 @@ class HomeView extends GetView<HomeController> {
               _greeting(),
               _guestHero(),
               _quickActions(),
+              _articlesSection(),
             ]);
           }
           if (data == null && loading) {
@@ -77,6 +79,7 @@ class HomeView extends GetView<HomeController> {
       _greeting(),
       _stats(data.statCards),
       _quickActions(),
+      _articlesSection(),
       _trendCard(data.diseaseTrend),
       if (data.topDisease != null) _topDiseaseCard(data.topDisease!),
       _recentScansCard(data.recentScans),
@@ -286,6 +289,102 @@ class HomeView extends GetView<HomeController> {
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Artikel edukasi ───────────────────────────────────────────────────────
+
+  Widget _articlesSection() {
+    final items = controller.articles;
+    if (items.isEmpty) return const SizedBox.shrink();
+    return _SectionCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Expanded(
+                child: SectionHeader(title: 'Artikel Edukasi'),
+              ),
+              TextButton(
+                onPressed: controller.openArticles,
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+                child: const Text(
+                  'Lihat Semua',
+                  style: TextStyle(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryDark,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(
+            height: 148,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: items.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (_, i) {
+                final a = items[i];
+                return InkWell(
+                  onTap: () => controller.openArticle(a),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 230,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.softAmber.withValues(alpha: 0.45),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: AppColors.accent.withValues(alpha: 0.35)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if ((a.category ?? '').isNotEmpty)
+                          Text(
+                            a.category!.toUpperCase(),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.7,
+                              color: AppColors.primaryDark,
+                            ),
+                          ),
+                        if ((a.category ?? '').isNotEmpty)
+                          const SizedBox(height: 4),
+                        Expanded(
+                          child: Text(
+                            a.title,
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              height: 1.35,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        ArticleMeta(item: a),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         ],
       ),

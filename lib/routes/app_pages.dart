@@ -2,6 +2,10 @@ import 'package:get/get.dart';
 
 import '../modules/encyclopedia/controllers/disease_detail_controller.dart';
 import '../modules/encyclopedia/controllers/encyclopedia_controller.dart';
+import '../modules/articles/controllers/article_detail_controller.dart';
+import '../modules/articles/controllers/article_list_controller.dart';
+import '../modules/articles/views/article_detail_view.dart';
+import '../modules/articles/views/article_list_view.dart';
 import '../modules/encyclopedia/views/disease_detail_view.dart';
 import '../modules/forum/controllers/forum_compose_controller.dart';
 import '../modules/forum/controllers/forum_detail_controller.dart';
@@ -145,6 +149,20 @@ class AppPages {
       page: () => const DiseaseDetailView(),
       binding: BindingsBuilder(() {
         Get.lazyPut<DiseaseDetailController>(() => DiseaseDetailController());
+      }),
+    ),
+    GetPage(
+      name: Routes.articles,
+      page: () => const ArticleListView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<ArticleListController>(() => ArticleListController());
+      }),
+    ),
+    GetPage(
+      name: Routes.articleDetail,
+      page: () => const ArticleDetailView(),
+      binding: BindingsBuilder(() {
+        Get.lazyPut<ArticleDetailController>(() => ArticleDetailController());
       }),
     ),
 
