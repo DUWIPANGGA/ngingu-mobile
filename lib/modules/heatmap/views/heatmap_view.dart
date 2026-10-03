@@ -461,6 +461,7 @@ class HeatmapView extends GetView<HeatmapController> {
       return SizedBox(
         height: 160,
         child: ErrorState(
+          compact: true,
           message: controller.outbreaksError.value!,
           onRetry: controller.fetchOutbreaks,
         ),
@@ -470,6 +471,7 @@ class HeatmapView extends GetView<HeatmapController> {
       return const SizedBox(
         height: 160,
         child: EmptyState(
+          compact: true,
           icon: Icons.notifications_active_outlined,
           title: 'Belum ada alert wabah',
           subtitle: 'Belum ada wabah penyakit yang terdeteksi saat ini.',

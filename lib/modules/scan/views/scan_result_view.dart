@@ -281,7 +281,14 @@ class ScanResultView extends GetView<ScanResultController> {
                 children: [
                   for (var i = 0; i < d.topPredictions.length; i++) ...[
                     if (i > 0) const Divider(height: 18),
-                    _predictionRow(d.topPredictions[i]),
+                    _predictionRow(
+                      d.topPredictions[i],
+                      i,
+                      i == 0
+                          ? 0
+                          : (d.topPredictions.first.confidence ?? 0) -
+                              (d.topPredictions[i].confidence ?? 0),
+                    ),
                   ],
                 ],
               ),
@@ -432,14 +439,37 @@ class ScanResultView extends GetView<ScanResultController> {
         child: const Icon(Icons.photo_outlined, size: 48, color: AppColors.primary),
       );
 
-  Widget _predictionRow(Prediction p) {
+  /// Baris prediksi dengan lencana peringkat & selisih dari prediksi #1.
+  Widget _predictionRow(Prediction p, int index, double gapFromTop) {
     final value = p.confidence ?? 0.0;
+    final rankColor = index == 0
+        ? AppColors.accent
+        : index == 1
+            ? AppColors.textSecondary
+            : AppColors.orange;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: rankColor.withValues(alpha: 0.14),
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: rankColor,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
             Expanded(
               child: Text(
                 p.name,
@@ -452,13 +482,26 @@ class ScanResultView extends GetView<ScanResultController> {
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              '${value.toStringAsFixed(1)}%',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textSecondary,
-              ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  '${value.toStringAsFixed(1)}%',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                if (index > 0)
+                  Text(
+                    '−${gapFromTop.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.textLight,
+                    ),
+                  ),
+              ],
             ),
           ],
         ),
