@@ -15,6 +15,7 @@ import '../../../core/widgets/app_avatar.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_buttons.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../../articles/views/article_list_view.dart';
 import '../controllers/home_controller.dart';
 
@@ -42,7 +43,7 @@ class HomeView extends GetView<HomeController> {
             ]);
           }
           if (data == null && loading) {
-            return const LoadingState(message: 'Memuat dashboard...');
+            return const DashboardSkeleton();
           }
           if (data == null && error != null) {
             return ErrorState(

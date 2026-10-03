@@ -8,6 +8,7 @@ import '../../../core/utils/image_helper.dart';
 import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_fields.dart';
 import '../../../core/widgets/app_feedback.dart';
+import '../../../core/widgets/app_skeleton.dart';
 import '../controllers/encyclopedia_controller.dart';
 
 /// Ensiklopedia penyakit — publik & bisa dibuka tamu (API.md §5.1, FR-03.1).
@@ -94,7 +95,7 @@ class EncyclopediaView extends GetView<EncyclopediaController> {
       final items = controller.items;
 
       if (controller.isLoading.value && items.isEmpty) {
-        return const LoadingState(message: 'Memuat daftar penyakit...');
+        return const DiseaseListSkeleton();
       }
       if (controller.errorMessage.value != null && items.isEmpty) {
         return ErrorState(
