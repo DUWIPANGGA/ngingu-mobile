@@ -1,13 +1,14 @@
 /// Runtime configuration for the Ngingu mobile client.
 ///
-/// Base URL is overridable at build/run time:
+/// Base URL defaults to the deployed server and is overridable at build/run
+/// time, e.g. for a local backend:
 ///   flutter run --dart-define=API_URL=http://10.0.2.2:8000/api
 class AppConfig {
   AppConfig._();
 
   static const String baseUrl = String.fromEnvironment(
     'API_URL',
-    defaultValue: 'https://api.ngingu.id/api',
+    defaultValue: 'https://ngingu.duvi.asia/api',
   );
 
   /// Server origin (without `/api`) — used to resolve storage/CDN-relative URLs.
@@ -33,7 +34,9 @@ class AppConfig {
 
   /// Poll cadences (API.md §9.2).
   static const Duration notificationPollInterval = Duration(seconds: 60);
-  static const Duration dashboardRefreshInterval = Duration(minutes: 5); // FR-07.1
+  static const Duration dashboardRefreshInterval = Duration(
+    minutes: 5,
+  ); // FR-07.1
 
   static const String appName = 'Ngingu';
 }

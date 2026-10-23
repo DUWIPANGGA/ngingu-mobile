@@ -188,6 +188,16 @@ class ApiClient {
       return _envelope<T>(response, parse);
     } on DioException catch (e) {
       return _fromDioError<T>(e, parse);
+    } catch (e) {
+      // Parser melempar error (payload tak terduga). Kontrak kelas ini adalah
+      // "never throw" — kalau lolos, `isLoading = false` di controller tidak
+      // pernah terjalankan dan layar nyangkut di loader (bug dashboard 10 Okt).
+      debugLog('parse error $method $path: $e');
+      return ApiResult<T>(
+        statusCode: 200,
+        success: false,
+        message: 'Data dari server tidak dapat dibaca. Coba lagi.',
+      );
     }
   }
 

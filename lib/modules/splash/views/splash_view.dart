@@ -12,7 +12,9 @@ class SplashView extends GetView<SplashController> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light.copyWith(statusBarColor: Colors.transparent),
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+      ),
       child: Scaffold(
         body: Container(
           width: double.infinity,
@@ -30,16 +32,7 @@ class SplashView extends GetView<SplashController> {
                 const Spacer(),
                 const NginguLogo(size: 150),
                 const SizedBox(height: 26),
-                const Text(
-                  'Ngingu',
-                  style: TextStyle(
-                    fontSize: 40,
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 8),
+
                 Text(
                   'Prediksi Penyakit Ikan & Komunitas Tambak',
                   style: TextStyle(

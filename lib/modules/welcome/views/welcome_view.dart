@@ -25,19 +25,8 @@ class WelcomeView extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const Spacer(flex: 3),
-                const Center(child: NginguLogo(size: 130, animate: false)),
+                const Center(child: NginguLogo(size: 180, animate: false)),
                 const SizedBox(height: 28),
-                const Text(
-                  'Ngingu',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 10),
                 const Text(
                   'Deteksi penyakit ikan sejak dini,\nrawat tambakmu bersama komunitas.',
                   textAlign: TextAlign.center,

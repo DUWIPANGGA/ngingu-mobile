@@ -79,7 +79,8 @@ class AppNotification {
     this.createdAt,
   });
 
-  final int id;
+  /// UUID string (backend notifications.id = UUID Laravel), bukan angka.
+  final String id;
   final String type;
   final String title;
   final String? body;
@@ -95,7 +96,7 @@ class AppNotification {
   factory AppNotification.fromJson(dynamic json) {
     final j = json as Map<String, dynamic>;
     return AppNotification(
-      id: (j['id'] as num?)?.toInt() ?? 0,
+      id: j['id']?.toString() ?? '',
       type: (j['type'] as String?) ?? '',
       title: (j['title'] as String?) ?? '',
       body: j['body'] as String?,

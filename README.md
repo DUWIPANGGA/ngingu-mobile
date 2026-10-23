@@ -22,7 +22,14 @@ image_picker · cached_network_image · share_plus · google_sign_in.
 ```sh
 flutter pub get
 
-# Emulator Android + backend lokal (default https://api.ngingu.id/api):
+# Default: API produksi https://ngingu.duvi.asia/api (tanpa --dart-define)
+flutter run
+
+# Atau lewat helper (default juga ngingu.duvi.asia, -Local untuk backend lokal):
+.\run_dev.ps1
+.\run_dev.ps1 -Local
+
+# Emulator Android + backend lokal:
 flutter run --dart-define=API_URL=http://10.0.2.2:8000/api
 
 # Perangkat fisik, backend di PC yang sama jaringan:

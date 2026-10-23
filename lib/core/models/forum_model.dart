@@ -30,7 +30,10 @@ class ForumAuthor {
     this.reputationLevel,
   });
 
-  final int? id;
+  /// UUID string (backend `users.id` is a UUID). Must not be parsed as `num`:
+  /// a string id used to throw a TypeError here, which made `parseForumPosts`
+  /// silently drop the whole post → forum list looked empty (FR-05.1.3).
+  final String? id;
   final String name;
   final String? avatarUrl;
   final String? reputationLevel;
@@ -40,7 +43,7 @@ class ForumAuthor {
       return const ForumAuthor(name: '-');
     }
     return ForumAuthor(
-      id: (json['id'] as num?)?.toInt(),
+      id: json['id']?.toString(),
       name: (json['name'] as String?) ?? '-',
       avatarUrl: json['avatar_url'] as String?,
       reputationLevel: json['reputation_level'] as String?,
@@ -192,11 +195,19 @@ class ForumPost {
       isPinned: j['is_pinned'] == true,
       status: j['status'] as String?,
       createdAt: j['created_at'] as String?,
-      comments: withDetail
-          ? ((j['comments'] as List?) ?? []).map(ForumComment.fromJson).toList()
-          : const [],
+      comments: withDetail ? _parseComments(j['comments']) : const [],
       viewer: ViewerState.fromJson(j['viewer']),
     );
+  }
+
+  /// §6.4: `comments` dikirim sebagai objek paginator
+  /// `{data: [...], total, ...}` — bukan array. Pemaksaan `as List` dulu
+  /// melempar TypeError dan membuka detail diskusi selalu gagal.
+  /// Terima kedua bentuk (paginator maupun array polos).
+  static List<ForumComment> _parseComments(dynamic raw) {
+    final list = raw is Map ? raw['data'] : raw;
+    if (list is! List) return const [];
+    return list.map(ForumComment.fromJson).toList();
   }
 }
 

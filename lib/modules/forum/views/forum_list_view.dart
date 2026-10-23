@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../../core/theme/app_colors.dart';
@@ -18,13 +18,11 @@ class ForumListView extends GetView<ForumListController> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.surface,
-      floatingActionButton: Obx(
-        () => FloatingActionButton(
-          onPressed: controller.openCompose,
-          backgroundColor: AppColors.primary,
-          elevation: 3,
-          child: const Icon(Icons.add, color: Colors.white, size: 28),
-        ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: controller.openCompose,
+        backgroundColor: AppColors.primary,
+        elevation: 3,
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
       body: SafeArea(
         child: Column(
