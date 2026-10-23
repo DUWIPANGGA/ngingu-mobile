@@ -9,8 +9,10 @@ import '../../../routes/app_routes.dart';
 
 /// Peta sebaran penyakit (FR-07.3).
 ///
-/// Endpoints (API.md §7.11 + §8.7):
+/// Endpoints (API.md §7.11 + §7.13 + §8.7):
 ///  * `GET /api/map/heatmap?days=7|30|90` — titik sebaran per provinsi.
+///  * `GET /api/map/pins?days=7|30|90` — marker individual tiap scan yang
+///    kolamnya punya koordinat (publik, tanpa auth).
 ///  * `GET /api/outbreaks` — feed alert wabah aktif (dipakai untuk daftar
 ///    "Laporan Terbaru" di bawah peta).
 class HeatmapController extends GetxController {
@@ -39,6 +41,16 @@ class HeatmapController extends GetxController {
   final selectedPoint = Rxn<HeatmapPoint>();
   final selectedRange = 30.obs;
 
+  // ── pin (GIS per-scan) state — API.md §7.13 ──────────────────────────────
+  final pins = <ScanPin>[].obs;
+  final pinsLoading = false.obs;
+  final pinsError = Rxn<String>();
+  final selectedPin = Rxn<ScanPin>();
+
+  /// Toggle lapisan marker di peta (dua-duanya boleh mati → peta bersih).
+  final showClusters = true.obs;
+  final showPins = true.obs;
+
   // ── outbreak list state ──────────────────────────────────────────────────
   final outbreaksLoading = false.obs;
   final outbreaks = <Outbreak>[].obs;
@@ -56,21 +68,36 @@ class HeatmapController extends GetxController {
     super.onClose();
   }
 
-  /// Re-fetch heatmap + outbreak list (refresh action / retry).
+  /// Re-fetch heatmap + pins + outbreak list (refresh action / retry).
   Future<void> fetchAll() async {
-    await Future.wait([fetchHeatmap(), fetchOutbreaks()]);
+    await Future.wait([fetchHeatmap(), fetchPins(), fetchOutbreaks()]);
   }
 
-  void clearSelection() => selectedPoint.value = null;
+  void clearSelection() {
+    selectedPoint.value = null;
+    selectedPin.value = null;
+  }
 
-  void selectPoint(HeatmapPoint point) => selectedPoint.value = point;
+  void selectPoint(HeatmapPoint point) {
+    selectedPin.value = null;
+    selectedPoint.value = point;
+  }
 
-  /// Ubah rentang `days` lalu muat ulang heatmap.
+  void selectPin(ScanPin pin) {
+    selectedPoint.value = null;
+    selectedPin.value = pin;
+  }
+
+  void toggleClusters() => showClusters.value = !showClusters.value;
+
+  void togglePins() => showPins.value = !showPins.value;
+
+  /// Ubah rentang `days` lalu muat ulang heatmap + pins.
   Future<void> setRange(int days) async {
     if (selectedRange.value == days) return;
     selectedRange.value = days;
-    selectedPoint.value = null;
-    await fetchHeatmap();
+    clearSelection();
+    await Future.wait([fetchHeatmap(), fetchPins()]);
   }
 
   Future<void> fetchHeatmap() async {
@@ -92,6 +119,28 @@ class HeatmapController extends GetxController {
     } else {
       hasError.value = true;
       errorMessage.value = res.errorText;
+    }
+  }
+
+  /// Muat marker individual per scan (API.md §7.13 — publik).
+  /// Hanya scan ber-status `done` yang kolamnya punya koordinat yang balik.
+  Future<void> fetchPins() async {
+    pinsLoading.value = true;
+    final res = await ApiClient.get<List<ScanPin>>(
+      '/map/pins',
+      query: {'days': selectedRange.value},
+      parse: _parsePins,
+    );
+    pinsLoading.value = false;
+    if (res.success) {
+      pins.assignAll(res.data ?? const <ScanPin>[]);
+      pinsError.value = null;
+      final selected = selectedPin.value;
+      if (selected != null && !pins.contains(selected)) {
+        selectedPin.value = null;
+      }
+    } else {
+      pinsError.value = res.errorText;
     }
   }
 
@@ -136,6 +185,16 @@ class HeatmapController extends GetxController {
     Get.toNamed(Routes.diseaseDetail, arguments: {'id': id});
   }
 
+  /// Buka detail penyakit dari pin GIS (payload §7.13 menyertakan `disease_id`).
+  void openPinDisease() {
+    final id = selectedPin.value?.diseaseId;
+    if (id == null) {
+      AppTheme.error('Tidak tersedia', 'Detail penyakit belum dapat ditemukan.');
+      return;
+    }
+    Get.toNamed(Routes.diseaseDetail, arguments: {'id': id});
+  }
+
   void openOutbreak(Outbreak outbreak) {
     if (outbreak.diseaseId == null) {
       AppTheme.error('Tidak tersedia', 'Detail penyakit belum dapat ditemukan.');
@@ -166,5 +225,13 @@ class HeatmapController extends GetxController {
   static List<HeatmapPoint> _parsePoints(dynamic json) {
     if (json is! List) return const <HeatmapPoint>[];
     return json.map(HeatmapPoint.fromJson).toList();
+  }
+
+  static List<ScanPin> _parsePins(dynamic json) {
+    if (json is! List) return const <ScanPin>[];
+    return json
+        .map(ScanPin.fromJson)
+        .where((pin) => pin.hasValidCoords)
+        .toList();
   }
 }

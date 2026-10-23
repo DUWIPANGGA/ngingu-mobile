@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/theme/app_colors.dart';
 import '../../../core/widgets/app_buttons.dart';
@@ -8,7 +10,8 @@ import '../../../core/widgets/app_fields.dart';
 import '../controllers/pond_form_controller.dart';
 
 /// Form tambah/ubah tambak (FR-08.1) — field sesuai API.md §7.3/§7.4,
-/// lokasi koordinat opsional via tombol "Ambil lokasi saat ini".
+/// lokasi koordinat opsional lewat peta satelit: marker default di lokasi
+/// saat ini (fallback Indramayu), bisa digeser/diketuk manual.
 class PondFormView extends GetView<PondFormController> {
   const PondFormView({super.key});
 
@@ -180,39 +183,95 @@ class PondFormView extends GetView<PondFormController> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SecondaryButton(
-                        label: controller.isLocating.value
-                            ? 'Mencari lokasi...'
-                            : 'Ambil lokasi saat ini',
-                        icon: Icons.my_location,
-                        expand: false,
-                        onPressed: controller.isLocating.value
-                            ? null
-                            : controller.captureLocation,
-                      ),
-                      if (hasCoords) ...[
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            const Icon(Icons.check_circle_outline,
-                                size: 16, color: AppColors.secondary),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.textPrimary,
-                                ),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: SizedBox(
+                          height: 260,
+                          child: FlutterMap(
+                            mapController: controller.mapController,
+                            options: MapOptions(
+                              initialCenter: PondFormController.indramayuCenter,
+                              initialZoom: 11,
+                              onMapReady: controller.onMapReady,
+                              onTap: controller.onMapTap,
+                              interactionOptions: const InteractionOptions(
+                                flags: InteractiveFlag.all &
+                                    ~InteractiveFlag.rotate,
                               ),
                             ),
+                            children: [
+                              TileLayer(
+                                urlTemplate:
+                                    'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+                                userAgentPackageName: 'ngingu.duvi.com',
+                                maxNativeZoom: 19,
+                              ),
+                              if (hasCoords)
+                                MarkerLayer(
+                                  markers: [
+                                    Marker(
+                                      point: LatLng(lat, lng),
+                                      width: 44,
+                                      height: 44,
+                                      child: GestureDetector(
+                                        onPanUpdate: controller.onMarkerDrag,
+                                        child: const Icon(
+                                          Icons.place,
+                                          size: 44,
+                                          color: Colors.white,
+                                          shadows: [
+                                            Shadow(
+                                              blurRadius: 6,
+                                              color: Colors.black54,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              const RichAttributionWidget(
+                                attributions: [
+                                  TextSourceAttribution(
+                                      'Esri, Maxar, Earthstar Geographics'),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Icon(
+                            hasCoords
+                                ? Icons.check_circle_outline
+                                : Icons.touch_app_outlined,
+                            size: 16,
+                            color: hasCoords
+                                ? AppColors.secondary
+                                : AppColors.textLight,
+                          ),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              hasCoords
+                                  ? '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)} • ${_viaLabel(controller.pickedVia.value)}'
+                                  : 'Geser marker atau ketuk peta untuk memilih titik.',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
+                          if (hasCoords)
                             TextButton(
                               onPressed: controller.clearLocation,
                               style: TextButton.styleFrom(
                                 foregroundColor: AppColors.textSecondary,
-                                padding:
-                                    const EdgeInsets.symmetric(horizontal: 8),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 8),
                                 minimumSize: Size.zero,
                                 tapTargetSize:
                                     MaterialTapTargetSize.shrinkWrap,
@@ -220,9 +279,19 @@ class PondFormView extends GetView<PondFormController> {
                               child: const Text('Hapus',
                                   style: TextStyle(fontSize: 12.5)),
                             ),
-                          ],
-                        ),
-                      ],
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      SecondaryButton(
+                        label: controller.isLocating.value
+                            ? 'Mencari lokasi...'
+                            : 'Gunakan lokasi saya',
+                        icon: Icons.my_location,
+                        expand: false,
+                        onPressed: controller.isLocating.value
+                            ? null
+                            : controller.captureLocation,
+                      ),
                     ],
                   );
                 }),
@@ -250,4 +319,12 @@ class PondFormView extends GetView<PondFormController> {
       ),
     );
   }
+
+  /// Keterangan asal titik pada readout koordinat.
+  String _viaLabel(String? via) => switch (via) {
+        'gps' => 'lokasi saat ini',
+        'manual' => 'pilih manual',
+        'saved' => 'tersimpan',
+        _ => 'dipilih',
+      };
 }

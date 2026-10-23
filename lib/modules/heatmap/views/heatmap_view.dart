@@ -10,8 +10,9 @@ import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../controllers/heatmap_controller.dart';
 
-/// Peta sebaran penyakit (FR-07.3): heatmap titik per provinsi + feed
-/// "Laporan Terbaru" dari `GET /api/outbreaks`.
+/// Peta sebaran penyakit (FR-07.3): heatmap titik per provinsi, marker
+/// individual tiap scan bergeolokasi (`GET /api/map/pins`, API.md §7.13) +
+/// feed "Laporan Terbaru" dari `GET /api/outbreaks`.
 class HeatmapView extends GetView<HeatmapController> {
   const HeatmapView({super.key});
 
@@ -53,11 +54,24 @@ class HeatmapView extends GetView<HeatmapController> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _rangeChips(),
+                  const SizedBox(height: 10),
+                  _layerChips(),
                   const SizedBox(height: 12),
                   _mapCard(context, mapHeight),
+                  if (controller.pinsError.value != null) ...[
+                    const SizedBox(height: 10),
+                    AppBanner(
+                      icon: Icons.location_off_outlined,
+                      message:
+                          'Titik scan tidak dapat dimuat. ${controller.pinsError.value}',
+                    ),
+                  ],
                   if (controller.points.isEmpty &&
+                      controller.pins.isEmpty &&
                       !controller.isLoading.value &&
-                      !controller.hasError.value) ...[
+                      !controller.pinsLoading.value &&
+                      !controller.hasError.value &&
+                      controller.pinsError.value == null) ...[
                     const SizedBox(height: 10),
                     const AppBanner(
                       icon: Icons.info_outline,
@@ -136,6 +150,84 @@ class HeatmapView extends GetView<HeatmapController> {
     );
   }
 
+  // ── sakelar lapisan peta ──────────────────────────────────────────────────
+
+  Widget _layerChips() {
+    return Row(
+      children: [
+        const Text(
+          'Lapisan',
+          style: TextStyle(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              color: AppColors.textSecondary),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _layerChip(
+                  label: 'Titik Kasus',
+                  icon: Icons.bubble_chart_rounded,
+                  active: controller.showClusters.value,
+                  onTap: controller.toggleClusters,
+                ),
+                const SizedBox(width: 8),
+                _layerChip(
+                  label: 'Titik Scan',
+                  icon: Icons.location_on_rounded,
+                  active: controller.showPins.value,
+                  onTap: controller.togglePins,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _layerChip({
+    required String label,
+    required IconData icon,
+    required bool active,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primaryDark : AppColors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+              color: active ? AppColors.primaryDark : AppColors.border,
+              width: 1.2),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: active ? Colors.white : AppColors.textSecondary),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: active ? Colors.white : AppColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   // ── peta ─────────────────────────────────────────────────────────────────
 
   Widget _mapCard(BuildContext context, double height) {
@@ -161,15 +253,22 @@ class HeatmapView extends GetView<HeatmapController> {
 
   Widget _mapStack() {
     final selected = controller.selectedPoint.value;
-    final hasPoints = controller.points.isNotEmpty;
-    final isReady = !controller.isLoading.value && !controller.hasError.value;
+    final selectedPin = controller.selectedPin.value;
+    final hasMarkers = (controller.showClusters.value &&
+            controller.points.isNotEmpty) ||
+        (controller.showPins.value && controller.pins.isNotEmpty);
+    final isReady = !controller.isLoading.value &&
+        !controller.hasError.value &&
+        !controller.pinsLoading.value;
+    final nothingSelected = selected == null && selectedPin == null;
     return Stack(
       children: [
         _mapBody(),
-        if (hasPoints || isReady) _focusIndramayuButton(),
-        if (hasPoints && selected == null) _legend(),
+        if (hasMarkers || isReady) _focusIndramayuButton(),
+        if (hasMarkers && nothingSelected) _legend(),
         if (selected != null) _selectedCard(selected),
-        if (!hasPoints && isReady) _emptyOverlay(),
+        if (selectedPin != null) _selectedPinCard(selectedPin),
+        if (!hasMarkers && isReady) _emptyOverlay(),
       ],
     );
   }
@@ -220,7 +319,9 @@ class HeatmapView extends GetView<HeatmapController> {
   }
 
   Widget _mapBody() {
-    if (controller.isLoading.value && controller.points.isEmpty) {
+    if (controller.isLoading.value &&
+        controller.points.isEmpty &&
+        controller.pins.isEmpty) {
       return Container(
         color: AppColors.border.withValues(alpha: 0.4),
         child: const Center(
@@ -230,7 +331,9 @@ class HeatmapView extends GetView<HeatmapController> {
         ),
       );
     }
-    if (controller.hasError.value && controller.points.isEmpty) {
+    if (controller.hasError.value &&
+        controller.points.isEmpty &&
+        controller.pins.isEmpty) {
       return Container(
         color: AppColors.white,
         child: Center(
@@ -265,6 +368,18 @@ class HeatmapView extends GetView<HeatmapController> {
   }
 
   List<Marker> _markers() {
+    final markers = <Marker>[];
+    if (controller.showClusters.value) {
+      markers.addAll(_clusterMarkers());
+    }
+    if (controller.showPins.value) {
+      markers.addAll(_pinMarkers());
+    }
+    return markers;
+  }
+
+  /// Klaster kasus per provinsi (API.md §7.11).
+  List<Marker> _clusterMarkers() {
     final selected = controller.selectedPoint.value;
     final markers = <Marker>[];
     for (final point in controller.points) {
@@ -314,12 +429,72 @@ class HeatmapView extends GetView<HeatmapController> {
     return markers;
   }
 
+  /// Marker per scan (API.md §7.13) — pin berwarna sesuai severity penyakit.
+  List<Marker> _pinMarkers() {
+    final selected = controller.selectedPin.value;
+    final markers = <Marker>[];
+    for (final pin in controller.pins) {
+      if (!pin.hasValidCoords) continue;
+      final isSelected = selected?.id == pin.id;
+      final size = isSelected ? 40.0 : 32.0;
+      markers.add(
+        Marker(
+          point: LatLng(pin.lat, pin.lng),
+          width: size,
+          height: size,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => controller.selectPin(pin),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                if (isSelected)
+                  Container(
+                    width: size,
+                    height: size,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.45),
+                          blurRadius: 10,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                  ),
+                Icon(
+                  Icons.location_on_rounded,
+                  size: isSelected ? 34 : 28,
+                  color: AppColors.severity(pin.severity),
+                  shadows: [
+                    Shadow(
+                      color: Colors.black.withValues(alpha: 0.28),
+                      blurRadius: 5,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+    return markers;
+  }
+
   Widget _legend() {
-    const entries = <(String, String)>[
-      ('Ringan', '< 5 kasus'),
-      ('Sedang', '5 - 9 kasus'),
-      ('Berat', '10 - 19 kasus'),
-      ('Kritis', '20+ kasus'),
+    // Rentang jumlah kasus hanya berlaku untuk lapisan klaster (§7.11);
+    // lapisan pin memakai warna severity penyakit (§7.13).
+    final showCaseRanges = controller.showClusters.value;
+    const severities = <String>['Ringan', 'Sedang', 'Berat', 'Kritis'];
+    const caseRanges = <String>[
+      '< 5 kasus',
+      '5 - 9 kasus',
+      '10 - 19 kasus',
+      '20+ kasus',
     ];
     return Positioned(
       left: 10,
@@ -335,15 +510,15 @@ class HeatmapView extends GetView<HeatmapController> {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Tingkat kasus',
-              style: TextStyle(
+            Text(
+              showCaseRanges ? 'Tingkat kasus' : 'Keparahan penyakit',
+              style: const TextStyle(
                   fontSize: 11,
                   fontWeight: FontWeight.w800,
                   color: AppColors.textPrimary),
             ),
             const SizedBox(height: 6),
-            for (final (severity, range) in entries)
+            for (var i = 0; i < severities.length; i++)
               Padding(
                 padding: const EdgeInsets.only(bottom: 4),
                 child: Row(
@@ -354,12 +529,14 @@ class HeatmapView extends GetView<HeatmapController> {
                       height: 10,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: AppColors.severity(severity.toLowerCase()),
+                        color: AppColors.severity(severities[i].toLowerCase()),
                       ),
                     ),
                     const SizedBox(width: 7),
                     Text(
-                      '$severity ($range)',
+                      showCaseRanges
+                          ? '${severities[i]} (${caseRanges[i]})'
+                          : severities[i],
                       style: const TextStyle(
                           fontSize: 11, color: AppColors.textSecondary),
                     ),
@@ -484,7 +661,151 @@ class HeatmapView extends GetView<HeatmapController> {
     );
   }
 
+  Widget _selectedPinCard(ScanPin pin) {
+    final color = AppColors.severity(pin.severity);
+    final subtitle = [
+      if ((pin.locationLabel ?? '').isNotEmpty) pin.locationLabel,
+      if ((pin.fishType ?? '').isNotEmpty) pin.fishType,
+    ].join(' · ');
+    return Positioned(
+      left: 10,
+      right: 10,
+      bottom: 10,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 8, 10),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.border),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.textPrimary.withValues(alpha: 0.12),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        (pin.pondName ?? '').isNotEmpty
+                            ? pin.pondName!
+                            : 'Lokasi scan',
+                        style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle.isNotEmpty ? subtitle : 'Tanpa label lokasi',
+                        style: const TextStyle(
+                            fontSize: 12.5, color: AppColors.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(
+                  width: 34,
+                  height: 34,
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    tooltip: 'Tutup',
+                    onPressed: controller.clearSelection,
+                    icon: const Icon(Icons.close_rounded,
+                        size: 19, color: AppColors.textLight),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SeverityBadge(severity: pin.severity ?? 'ringan', small: true),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        (pin.diseaseName ?? '').isNotEmpty
+                            ? pin.diseaseName!
+                            : 'Penyakit belum teridentifikasi',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: color),
+                      ),
+                    ),
+                  ],
+                ),
+                if (pin.confidenceScore > 0)
+                  Text(
+                    'Keyakinan ${pin.confidenceScore.toStringAsFixed(1)}%',
+                    style: const TextStyle(
+                        fontSize: 12.5, color: AppColors.textSecondary),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    (pin.scannedAt ?? '').isNotEmpty
+                        ? 'Dipindai ${timeAgo(pin.scannedAt)}'
+                        : 'Waktu scan tidak tersedia',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                        fontSize: 12.5, color: AppColors.textSecondary),
+                  ),
+                ),
+                if (pin.diseaseId != null)
+                  TextButton(
+                    onPressed: controller.openPinDisease,
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppColors.primaryDark,
+                      padding: const EdgeInsets.symmetric(horizontal: 8),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Lihat Penyakit',
+                      style:
+                          TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                    ),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _emptyOverlay() {
+    final allLayersOff =
+        !controller.showClusters.value && !controller.showPins.value;
     return Positioned.fill(
       child: Center(
         child: ConstrainedBox(
@@ -496,13 +817,19 @@ class HeatmapView extends GetView<HeatmapController> {
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: const SingleChildScrollView(
+            child: SingleChildScrollView(
               child: EmptyState(
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                icon: Icons.map_outlined,
-                title: 'Belum ada laporan sebaran',
-                subtitle:
-                    'Laporan penyakit dari pengguna lain akan tampil di sini.',
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 20, vertical: 20),
+                icon: allLayersOff
+                    ? Icons.layers_clear_outlined
+                    : Icons.map_outlined,
+                title: allLayersOff
+                    ? 'Semua lapisan dimatikan'
+                    : 'Belum ada laporan sebaran',
+                subtitle: allLayersOff
+                    ? 'Nyalakan "Titik Kasus" atau "Titik Scan" untuk menampilkan marker di peta.'
+                    : 'Laporan penyakit dari pengguna lain akan tampil di sini.',
               ),
             ),
           ),

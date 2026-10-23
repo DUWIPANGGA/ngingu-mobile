@@ -1,6 +1,10 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/models/pond_model.dart';
 import '../../../core/network/api_client.dart';
@@ -25,6 +29,18 @@ class PondFormController extends GetxController {
 
   final locationLat = RxnDouble();
   final locationLng = RxnDouble();
+
+  /// 'gps' = mengikuti lokasi saat ini, 'manual' = digeser/diketuk user,
+  /// 'saved' = bawaan data tersimpan (mode ubah), null = belum ada titik.
+  final pickedVia = RxnString();
+  final mapController = MapController();
+
+  /// Fallback peta bila izin lokasi ditolak: pusat Kabupaten Indramayu.
+  static const indramayuCenter = LatLng(-6.4548, 108.3237);
+
+  bool _mapReady = false;
+  LatLng? _pendingCenter;
+  double _pendingZoom = 16;
   final fishChips = <String>[].obs;
 
   final nameError = Rxn<String>();
@@ -47,6 +63,7 @@ class PondFormController extends GetxController {
       loadPond();
     } else {
       _syncFishChips();
+      initMapLocation();
     }
     nameController.addListener(() => nameError.value = null);
     locationController.addListener(() => locationLabelError.value = null);
@@ -94,6 +111,10 @@ class PondFormController extends GetxController {
     descriptionController.text = pond.description ?? '';
     locationLat.value = pond.locationLat;
     locationLng.value = pond.locationLng;
+    if (pond.locationLat != null && pond.locationLng != null) {
+      pickedVia.value = 'saved';
+      _requestMove(LatLng(pond.locationLat!, pond.locationLng!), 16);
+    }
     _syncFishChips();
   }
 
@@ -105,37 +126,99 @@ class PondFormController extends GetxController {
 
   void _syncFishChips() => fishChips.assignAll(_parseFishTypes());
 
-  /// Lokasi opsional (API.md §7.3 menandai koordinat opsional) — bila izin
-  /// ditolak atau layanan lokasi mati, dilewati diam-diam.
-  Future<void> captureLocation() async {
-    if (isLocating.value) return;
-    isLocating.value = true;
+  /// Baca GPS senyap (tanpa toast gagal) — dipakai inisialisasi peta.
+  Future<Position?> _tryCurrentPosition() async {
     try {
-      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      if (!serviceEnabled) return;
+      if (!await Geolocator.isLocationServiceEnabled()) return null;
       var permission = await Geolocator.checkPermission();
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
-        return;
+        return null;
       }
-      final pos = await Geolocator.getCurrentPosition();
-      locationLat.value = pos.latitude;
-      locationLng.value = pos.longitude;
-      AppTheme.success('Lokasi ditemukan',
-          '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}');
+      return await Geolocator.getCurrentPosition(
+          timeLimit: const Duration(seconds: 10));
     } catch (_) {
-      // Koordinat opsional — gagal diam-diam.
-    } finally {
-      isLocating.value = false;
+      return null;
     }
+  }
+
+  /// Saat form terbuka: default marker = lokasi sekarang; izin ditolak →
+  /// peta fokus ke Indramayu tanpa marker (user pilih manual).
+  Future<void> initMapLocation() async {
+    final pos = await _tryCurrentPosition();
+    if (pos != null) {
+      final p = LatLng(pos.latitude, pos.longitude);
+      setPoint(p, via: 'gps');
+      _requestMove(p, 16);
+    } else {
+      _requestMove(indramayuCenter, 11);
+    }
+  }
+
+  /// Lokasi opsional (API.md §7.3) — tombol "Gunakan lokasi saya": kembali
+  /// ke GPS + recenter peta.
+  Future<void> captureLocation() async {
+    if (isLocating.value) return;
+    isLocating.value = true;
+    final pos = await _tryCurrentPosition();
+    isLocating.value = false;
+    if (pos == null) {
+      AppTheme.error('Lokasi tidak tersedia',
+          'Izin lokasi ditolak atau GPS mati. Geser marker manual saja.');
+      return;
+    }
+    final p = LatLng(pos.latitude, pos.longitude);
+    setPoint(p, via: 'gps');
+    _requestMove(p, 16);
+    AppTheme.success('Lokasi ditemukan',
+        '${pos.latitude.toStringAsFixed(5)}, ${pos.longitude.toStringAsFixed(5)}');
+  }
+
+  void setPoint(LatLng p, {required String via}) {
+    locationLat.value = p.latitude;
+    locationLng.value = p.longitude;
+    pickedVia.value = via;
+  }
+
+  void onMapTap(TapPosition _, LatLng p) => setPoint(p, via: 'manual');
+
+  /// Geser marker dengan jari: delta layar (px) → koordinat lewat kamera.
+  void onMarkerDrag(DragUpdateDetails d) {
+    final lat = locationLat.value;
+    final lng = locationLng.value;
+    if (lat == null || lng == null) return;
+    final cam = mapController.camera;
+    final screen =
+        cam.screenOffsetToLatLng(cam.latLngToScreenOffset(LatLng(lat, lng)) + d.delta);
+    setPoint(screen, via: 'manual');
+  }
+
+  void _requestMove(LatLng center, double zoom) {
+    _pendingCenter = center;
+    _pendingZoom = zoom;
+    if (_mapReady) _flushPendingMove();
+  }
+
+  void _flushPendingMove() {
+    final c = _pendingCenter;
+    if (c == null) return;
+    mapController.move(c, _pendingZoom);
+    _pendingCenter = null;
+  }
+
+  /// Dipanggil FlutterMap setelah peta siap menerima perintah move.
+  void onMapReady() {
+    _mapReady = true;
+    _flushPendingMove();
   }
 
   void clearLocation() {
     locationLat.value = null;
     locationLng.value = null;
+    pickedVia.value = null;
   }
 
   bool _validate() {

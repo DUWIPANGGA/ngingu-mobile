@@ -1,4 +1,5 @@
-/// Tips, outbreak alerts & heatmap models (API.md §7.11, §8.6–§8.7, FR-06.4/6.5).
+/// Tips, outbreak alerts, heatmap & pins GIS models
+/// (API.md §7.11, §7.13, §8.6–§8.7, FR-06.4/6.5/FR-07.3).
 library;
 
 class Tip {
@@ -89,6 +90,57 @@ class HeatmapPoint {
       lng: (j['lng'] as num?)?.toDouble() ?? 0,
       cases: (j['cases'] as num?)?.toInt() ?? 0,
       topDisease: j['top_disease'] as String?,
+    );
+  }
+}
+
+/// Satu hasil scan yang punya lokasi tambak — marker individual di peta GIS
+/// (API.md §7.13 `GET /api/map/pins`, publik).
+class ScanPin {
+  const ScanPin({
+    required this.id,
+    required this.lat,
+    required this.lng,
+    this.pondName,
+    this.locationLabel,
+    this.diseaseId,
+    this.diseaseName,
+    this.severity,
+    this.confidenceScore = 0,
+    this.fishType,
+    this.scannedAt,
+  });
+
+  final int id;
+  final double lat;
+  final double lng;
+  final String? pondName;
+  final String? locationLabel;
+  final int? diseaseId;
+  final String? diseaseName;
+  final String? severity;
+  final double confidenceScore;
+  final String? fishType;
+  final String? scannedAt;
+
+  /// Koordinat valid untuk ditaruh di peta.
+  bool get hasValidCoords =>
+      lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+  factory ScanPin.fromJson(dynamic json) {
+    final j = json as Map<String, dynamic>;
+    return ScanPin(
+      id: (j['id'] as num?)?.toInt() ?? 0,
+      lat: (j['lat'] as num?)?.toDouble() ?? 0,
+      lng: (j['lng'] as num?)?.toDouble() ?? 0,
+      pondName: j['pond_name'] as String?,
+      locationLabel: j['location_label'] as String?,
+      diseaseId: (j['disease_id'] as num?)?.toInt(),
+      diseaseName: j['disease_name'] as String?,
+      severity: j['severity'] as String?,
+      confidenceScore: (j['confidence_score'] as num?)?.toDouble() ?? 0,
+      fishType: j['fish_type'] as String?,
+      scannedAt: j['scanned_at'] as String?,
     );
   }
 }

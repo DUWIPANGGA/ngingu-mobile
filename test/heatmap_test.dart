@@ -24,6 +24,66 @@ void main() {
     });
   });
 
+  group('ScanPin - GIS per-scan (API.md §7.13)', () {
+    test('parses /api/map/pins payload', () {
+      final pin = ScanPin.fromJson({
+        'id': 421,
+        'lat': -6.3275,
+        'lng': 108.3250,
+        'pond_name': 'Tambak Pak Hadi',
+        'location_label': 'Indramayu, Jawa Barat',
+        'disease_id': 5,
+        'disease_name': 'White Spot (Ich)',
+        'severity': 'berat',
+        'confidence_score': 88.5,
+        'fish_type': 'Lele',
+        'scanned_at': '2026-10-20T09:12:00+07:00',
+      });
+
+      expect(pin.id, 421);
+      expect(pin.lat, closeTo(-6.3275, 0.0001));
+      expect(pin.lng, closeTo(108.3250, 0.0001));
+      expect(pin.pondName, 'Tambak Pak Hadi');
+      expect(pin.diseaseId, 5);
+      expect(pin.severity, 'berat');
+      expect(pin.confidenceScore, 88.5);
+      expect(pin.fishType, 'Lele');
+      expect(pin.hasValidCoords, isTrue);
+    });
+
+    test('tolerates missing optional fields and flags bad coordinates', () {
+      final pin = ScanPin.fromJson({'id': 1, 'lat': 999, 'lng': 0});
+      expect(pin.pondName, isNull);
+      expect(pin.diseaseId, isNull);
+      expect(pin.confidenceScore, 0);
+      expect(pin.hasValidCoords, isFalse);
+    });
+
+    test('layer toggles and selection are mutually exclusive', () {
+      final controller = HeatmapController();
+      const point = HeatmapPoint(
+          province: 'Jawa Barat', lat: -6.9, lng: 107.6, cases: 3);
+      const pin = ScanPin(id: 7, lat: -6.3, lng: 108.3);
+
+      expect(controller.showClusters.value, isTrue);
+      expect(controller.showPins.value, isTrue);
+
+      controller.togglePins();
+      expect(controller.showPins.value, isFalse);
+      controller.toggleClusters();
+      expect(controller.showClusters.value, isFalse);
+
+      controller.selectPoint(point);
+      controller.selectPin(pin);
+      expect(controller.selectedPoint.value, isNull);
+      expect(controller.selectedPin.value?.id, 7);
+
+      controller.clearSelection();
+      expect(controller.selectedPin.value, isNull);
+      controller.onClose();
+    });
+  });
+
   group('HeatmapView - Overflow Regression Test', () {
     testWidgets('renders cleanly on narrow/compact screen on error state', (tester) async {
       tester.view.physicalSize = const Size(320, 640);
