@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dio/dio.dart' as dio;
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -196,6 +197,11 @@ class ScanController extends GetxController {
       if (pondId.isNotEmpty) fields['pond_id'] = pondId;
       final fishType = fishTypeController.text.trim();
       if (fishType.isNotEmpty) fields['fish_type'] = fishType;
+      final position = await _tryGetPosition();
+      if (position != null) {
+        fields['location_lat'] = position.latitude;
+        fields['location_lng'] = position.longitude;
+      }
 
       final res = await ApiClient.postMultipart<CreateScanResponse>(
         '/scans',
@@ -218,6 +224,29 @@ class ScanController extends GetxController {
       }
     } finally {
       isSubmitting.value = false;
+    }
+  }
+
+  /// Lokasi perangkat untuk peta sebaran (GIS): koordinat titik scan dikirim
+  /// ke server agar tampil sebagai sebaran penyakit di heatmap. Mengikuti
+  /// pola pond_form_controller — bila layanan lokasi mati atau izin ditolak,
+  /// kembalikan null dan scan tetap berjalan tanpa koordinat.
+  Future<Position?> _tryGetPosition() async {
+    try {
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) return null;
+      var permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        return null;
+      }
+      return await Geolocator.getCurrentPosition();
+    } catch (_) {
+      // Koordinat opsional — gagal diam-diam.
+      return null;
     }
   }
 
