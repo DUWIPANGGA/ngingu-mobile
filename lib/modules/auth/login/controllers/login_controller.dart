@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show PlatformException;
 import 'package:get/get.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
@@ -18,11 +20,28 @@ class LoginController extends GetxController {
   final isLoading = false.obs;
   final isGoogleLoading = false.obs;
 
-  final _googleSignIn = GoogleSignIn(
-    scopes: ['email', 'profile'],
-    serverClientId:
-        '192572861773-qfpnedaikjredjpskhd4pofuibg2ivd8.apps.googleusercontent.com',
+  /// Client ID Web (client type 3) dari Google Cloud project `ngingu-fd854`.
+  /// - Android: dipakai sebagai `serverClientId` (audience `id_token`).
+  /// - Web: dipakai sebagai `clientId` (wajib diisi di web, kalau tidak
+  ///   `signIn()` langsung gagal).
+  /// Override saat build bila perlu:
+  /// `flutter run --dart-define=GOOGLE_WEB_CLIENT_ID=<id>.apps.googleusercontent.com`
+  static const _webClientId = String.fromEnvironment(
+    'GOOGLE_WEB_CLIENT_ID',
+    defaultValue:
+        '436124496187-j1k910d7spdtdihd0c972bvasa1ku904.apps.googleusercontent.com',
   );
+
+  final _googleSignIn = kIsWeb
+      ? GoogleSignIn(
+          scopes: const ['email', 'profile'],
+          clientId: _webClientId,
+          serverClientId: _webClientId,
+        )
+      : GoogleSignIn(
+          scopes: const ['email', 'profile'],
+          serverClientId: _webClientId,
+        );
 
   @override
   void onInit() {
@@ -75,10 +94,33 @@ class LoginController extends GetxController {
         data: {'id_token': idToken},
       );
       await _handleSession(res, 'Login dengan Google berhasil');
+    } on PlatformException catch (e) {
+      AppTheme.error('Gagal', _googleErrorText(e));
     } catch (e) {
-      AppTheme.error('Gagal', 'Login Google gagal. Coba lagi.');
+      AppTheme.error('Gagal', 'Login Google gagal. Coba lagi. ($e)');
     } finally {
       isGoogleLoading.value = false;
+    }
+  }
+
+  /// Terjemahkan error plugin Google (google_sign_in 6.x melempar
+  /// `PlatformException`) jadi pesan yang bisa ditindaklanjuti.
+  /// `sign_in_failed` di Android hampir selalu berarti package name + SHA-1
+  /// belum terdaftar atau tidak cocok di Firebase (ApiException "10").
+  String _googleErrorText(PlatformException e) {
+    final detail = e.message == null ? e.code : '${e.code} — ${e.message}';
+    switch (e.code) {
+      case 'canceled':
+        return 'Login Google dibatalkan.';
+      case 'sign_in_failed':
+        return 'Login Google gagal (sign_in_failed). Pastikan aplikasi sudah '
+            'terdaftar di Firebase dengan package + SHA-1 yang cocok. '
+            'Detail: $detail';
+      case 'network_error':
+        return 'Jaringan bermasalah saat menghubungi Google. Coba lagi. '
+            'Detail: $detail';
+      default:
+        return 'Login Google gagal. Detail: $detail';
     }
   }
 

@@ -89,12 +89,23 @@ class HeatmapView extends GetView<HeatmapController> {
               fontWeight: FontWeight.w700,
               color: AppColors.textSecondary),
         ),
-        const Spacer(),
-        for (final days in HeatmapController.rangeOptions) ...[
-          if (days != HeatmapController.rangeOptions.first)
-            const SizedBox(width: 8),
-          _rangeChip(days),
-        ],
+        const SizedBox(width: 8),
+        Expanded(
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            reverse: true,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final days in HeatmapController.rangeOptions) ...[
+                  if (days != HeatmapController.rangeOptions.first)
+                    const SizedBox(width: 8),
+                  _rangeChip(days),
+                ],
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -151,16 +162,60 @@ class HeatmapView extends GetView<HeatmapController> {
   Widget _mapStack() {
     final selected = controller.selectedPoint.value;
     final hasPoints = controller.points.isNotEmpty;
+    final isReady = !controller.isLoading.value && !controller.hasError.value;
     return Stack(
       children: [
         _mapBody(),
+        if (hasPoints || isReady) _focusIndramayuButton(),
         if (hasPoints && selected == null) _legend(),
         if (selected != null) _selectedCard(selected),
-        if (!hasPoints &&
-            !controller.isLoading.value &&
-            !controller.hasError.value)
-          _emptyOverlay(),
+        if (!hasPoints && isReady) _emptyOverlay(),
       ],
+    );
+  }
+
+  Widget _focusIndramayuButton() {
+    return Positioned(
+      top: 10,
+      right: 10,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: controller.focusIndramayu,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.white.withValues(alpha: 0.94),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.textPrimary.withValues(alpha: 0.08),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.my_location_rounded,
+                    size: 14, color: AppColors.primary),
+                SizedBox(width: 5),
+                Text(
+                  'Fokus Indramayu',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -168,30 +223,41 @@ class HeatmapView extends GetView<HeatmapController> {
     if (controller.isLoading.value && controller.points.isEmpty) {
       return Container(
         color: AppColors.border.withValues(alpha: 0.4),
-        child: const LoadingState(message: 'Memuat peta sebaran...'),
+        child: const Center(
+          child: SingleChildScrollView(
+            child: LoadingState(message: 'Memuat peta sebaran...'),
+          ),
+        ),
       );
     }
     if (controller.hasError.value && controller.points.isEmpty) {
       return Container(
         color: AppColors.white,
-        child: ErrorState(
-          message: controller.errorMessage.value ?? 'Gagal memuat peta sebaran.',
-          onRetry: controller.fetchHeatmap,
+        child: Center(
+          child: SingleChildScrollView(
+            child: ErrorState(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              message: controller.errorMessage.value ?? 'Gagal memuat peta sebaran.',
+              onRetry: controller.fetchHeatmap,
+            ),
+          ),
         ),
       );
     }
     return FlutterMap(
+      mapController: controller.mapController,
       options: const MapOptions(
-        initialCenter: LatLng(-2.5, 118.0),
-        initialZoom: 5,
+        initialCenter: HeatmapController.indramayuCenter,
+        initialZoom: HeatmapController.indramayuZoom,
         minZoom: 4,
-        maxZoom: 12,
+        maxZoom: 18,
         keepAlive: true,
       ),
       children: [
         TileLayer(
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'id.ngingu.apps',
+          maxZoom: 19,
         ),
         MarkerLayer(markers: _markers()),
       ],
@@ -345,6 +411,8 @@ class HeatmapView extends GetView<HeatmapController> {
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 3),
                       Text(
@@ -353,6 +421,8 @@ class HeatmapView extends GetView<HeatmapController> {
                             : 'Belum ada penyakit dominan',
                         style: const TextStyle(
                             fontSize: 12.5, color: AppColors.textSecondary),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ],
                   ),
@@ -371,18 +441,26 @@ class HeatmapView extends GetView<HeatmapController> {
               ],
             ),
             const SizedBox(height: 8),
-            Row(
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                SeverityBadge(severity: severity, small: true),
-                const SizedBox(width: 8),
-                Text(
-                  '${point.cases} kasus',
-                  style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w800,
-                      color: color),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SeverityBadge(severity: severity, small: true),
+                    const SizedBox(width: 8),
+                    Text(
+                      '${point.cases} kasus',
+                      style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                          color: color),
+                    ),
+                  ],
                 ),
-                const Spacer(),
                 if (diseaseId != null)
                   TextButton(
                     onPressed: controller.openPointDisease,
@@ -412,16 +490,20 @@ class HeatmapView extends GetView<HeatmapController> {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 300),
           child: Container(
-            margin: const EdgeInsets.all(20),
+            margin: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: AppColors.white,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: AppColors.border),
             ),
-            child: const EmptyState(
-              icon: Icons.map_outlined,
-              title: 'Belum ada laporan sebaran',
-              subtitle: 'Laporan penyakit dari pengguna lain akan tampil di sini.',
+            child: const SingleChildScrollView(
+              child: EmptyState(
+                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                icon: Icons.map_outlined,
+                title: 'Belum ada laporan sebaran',
+                subtitle:
+                    'Laporan penyakit dari pengguna lain akan tampil di sini.',
+              ),
             ),
           ),
         ),
@@ -451,25 +533,27 @@ class HeatmapView extends GetView<HeatmapController> {
 
   Widget _outbreaksBody() {
     if (controller.outbreaksLoading.value && controller.outbreaks.isEmpty) {
-      return const SizedBox(
-        height: 160,
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 36),
         child: LoadingState(message: 'Memuat laporan terbaru...'),
       );
     }
     if (controller.outbreaksError.value != null &&
         controller.outbreaks.isEmpty) {
-      return SizedBox(
-        height: 160,
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
         child: ErrorState(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           message: controller.outbreaksError.value!,
           onRetry: controller.fetchOutbreaks,
         ),
       );
     }
     if (controller.outbreaks.isEmpty) {
-      return const SizedBox(
-        height: 160,
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 16),
         child: EmptyState(
+          padding: EdgeInsets.symmetric(horizontal: 24, vertical: 16),
           icon: Icons.notifications_active_outlined,
           title: 'Belum ada alert wabah',
           subtitle: 'Belum ada wabah penyakit yang terdeteksi saat ini.',
@@ -515,18 +599,23 @@ class HeatmapView extends GetView<HeatmapController> {
                       Expanded(
                         child: Text(
                           item.diseaseName ?? 'Penyakit',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
                               fontSize: 14.5,
                               fontWeight: FontWeight.w700,
                               color: AppColors.textPrimary),
                         ),
                       ),
+                      const SizedBox(width: 8),
                       SeverityBadge(severity: item.severity, small: true),
                     ],
                   ),
                   const SizedBox(height: 3),
                   Text(
                     '${item.province ?? '-'} · ${timeAgo(item.createdAt)}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                         fontSize: 12.5, color: AppColors.textSecondary),
                   ),

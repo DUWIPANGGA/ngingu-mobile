@@ -1,4 +1,4 @@
-package com.miomidev.kaliwedi
+package ngingu.duvi.com
 
 import io.flutter.embedding.android.FlutterActivity
 

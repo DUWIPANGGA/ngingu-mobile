@@ -2,6 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:get/get.dart';
 
 import 'package:ngingu_apps/core/models/user_model.dart';
+import 'package:ngingu_apps/core/widgets/ngingu_logo.dart';
 import 'package:ngingu_apps/modules/welcome/views/welcome_view.dart';
 
 void main() {
@@ -14,7 +15,7 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('Ngingu'), findsOneWidget);
+      expect(find.byType(NginguLogo), findsOneWidget);
       expect(find.text('Masuk'), findsOneWidget);
       expect(find.text('Daftar Akun Baru'), findsOneWidget);
       expect(find.text('Jelajahi sebagai Tamu'), findsOneWidget);

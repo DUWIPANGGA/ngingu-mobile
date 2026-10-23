@@ -1,4 +1,6 @@
+import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
+import 'package:latlong2/latlong.dart';
 
 import '../../../core/models/alert_model.dart';
 import '../../../core/network/api_client.dart';
@@ -14,6 +16,20 @@ import '../../../routes/app_routes.dart';
 class HeatmapController extends GetxController {
   /// Opsi rentang waktu yang didukung param `days` (API.md §7.11).
   static const List<int> rangeOptions = [7, 30, 90];
+
+  /// Koordinat & level zoom fokus ke Kota Indramayu, Jawa Barat.
+  static const LatLng indramayuCenter = LatLng(-6.3275, 108.3250);
+  static const double indramayuZoom = 11.5;
+
+  final MapController mapController = MapController();
+
+  void focusIndramayu() {
+    try {
+      mapController.move(indramayuCenter, indramayuZoom);
+    } catch (_) {
+      // MapController belum ter-attach ke widget FlutterMap
+    }
+  }
 
   // ── heatmap state ─────────────────────────────────────────────────────────
   final isLoading = false.obs;
@@ -32,6 +48,12 @@ class HeatmapController extends GetxController {
   void onInit() {
     super.onInit();
     fetchAll();
+  }
+
+  @override
+  void onClose() {
+    mapController.dispose();
+    super.onClose();
   }
 
   /// Re-fetch heatmap + outbreak list (refresh action / retry).

@@ -8,8 +8,8 @@ komunitas tambak (forum, ensiklopedia, peta sebaran wabah).
 - Backend (Laravel): [`../Kaliwedi-Backend`](../Kaliwedi-Backend)
 
 > Klien ini di-rebuild penuh dari aplikasi lama (Kaliwedi, banjir) — modul banjir sudah
-> dihapus; nama package Android `com.miomidev.kaliwedi` dipertahankan (applicationId tidak
-> diubah agar upgrade path aman).
+> dihapus; nama package Android saat ini `ngingu.duvi.com` (berubah dari `com.miomidev.kaliwedi`,
+> sehingga terpasang sebagai aplikasi terpisah dari versi lama).
 
 ## Stack
 
