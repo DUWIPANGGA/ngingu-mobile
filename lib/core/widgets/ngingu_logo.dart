@@ -1,7 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/app_colors.dart';
-
 /// Hand-drawn Ngingu badge logo (fish + bubbles in a sky circle).
 class NginguLogo extends StatelessWidget {
   const NginguLogo({super.key, this.size = 220, this.animate = true});

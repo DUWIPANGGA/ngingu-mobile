@@ -30,8 +30,7 @@ void main() {
         'id': 421,
         'lat': -6.3275,
         'lng': 108.3250,
-        'pond_name': 'Tambak Pak Hadi',
-        'location_label': 'Indramayu, Jawa Barat',
+        'kecamatan': 'Indramayu',
         'disease_id': 5,
         'disease_name': 'White Spot (Ich)',
         'severity': 'berat',
@@ -43,7 +42,7 @@ void main() {
       expect(pin.id, 421);
       expect(pin.lat, closeTo(-6.3275, 0.0001));
       expect(pin.lng, closeTo(108.3250, 0.0001));
-      expect(pin.pondName, 'Tambak Pak Hadi');
+      expect(pin.kecamatan, 'Indramayu');
       expect(pin.diseaseId, 5);
       expect(pin.severity, 'berat');
       expect(pin.confidenceScore, 88.5);
@@ -53,7 +52,7 @@ void main() {
 
     test('tolerates missing optional fields and flags bad coordinates', () {
       final pin = ScanPin.fromJson({'id': 1, 'lat': 999, 'lng': 0});
-      expect(pin.pondName, isNull);
+      expect(pin.kecamatan, isNull);
       expect(pin.diseaseId, isNull);
       expect(pin.confidenceScore, 0);
       expect(pin.hasValidCoords, isFalse);
@@ -62,7 +61,7 @@ void main() {
     test('layer toggles and selection are mutually exclusive', () {
       final controller = HeatmapController();
       const point = HeatmapPoint(
-          province: 'Jawa Barat', lat: -6.9, lng: 107.6, cases: 3);
+          kecamatan: 'Indramayu', lat: -6.9, lng: 107.6, cases: 3);
       const pin = ScanPin(id: 7, lat: -6.3, lng: 108.3);
 
       expect(controller.showClusters.value, isTrue);
@@ -93,7 +92,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final controller = Get.put(HeatmapController());
+      Get.put(HeatmapController());
 
       await tester.pumpWidget(
         const GetMaterialApp(
@@ -121,7 +120,7 @@ void main() {
       controller.isLoading.value = false;
       controller.points.assignAll([
         const HeatmapPoint(
-          province: 'Jawa Barat (Indramayu)',
+          kecamatan: 'Indramayu',
           lat: -6.3275,
           lng: 108.3250,
           cases: 15,

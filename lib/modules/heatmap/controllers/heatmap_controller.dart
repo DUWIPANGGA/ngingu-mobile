@@ -10,9 +10,10 @@ import '../../../routes/app_routes.dart';
 /// Peta sebaran penyakit (FR-07.3).
 ///
 /// Endpoints (API.md §7.11 + §7.13 + §8.7):
-///  * `GET /api/map/heatmap?days=7|30|90` — titik sebaran per provinsi.
+///  * `GET /api/map/heatmap?days=7|30|90` — akumulasi kasus per kecamatan
+///    (fokus Kab. Indramayu; `lat`/`lng` = titik tengah kecamatan).
 ///  * `GET /api/map/pins?days=7|30|90` — marker individual tiap scan yang
-///    kolamnya punya koordinat (publik, tanpa auth).
+///    punya koordinat (GPS scan, fallback kolam; publik, tanpa auth).
 ///  * `GET /api/outbreaks` — feed alert wabah aktif (dipakai untuk daftar
 ///    "Laporan Terbaru" di bawah peta).
 class HeatmapController extends GetxController {

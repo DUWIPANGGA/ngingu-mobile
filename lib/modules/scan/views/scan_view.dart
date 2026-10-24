@@ -156,6 +156,24 @@ class ScanView extends GetView<ScanController> {
             prefixIcon: Icons.pets_outlined,
             textInputAction: TextInputAction.done,
           ),
+          const SizedBox(height: 10),
+          // Statik saja: tidak ada snackbar/pesan saat GPS tidak tersedia —
+          // lokasi bersifat opsional (FR-07.3).
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(Icons.location_on_outlined,
+                  size: 15, color: AppColors.textLight),
+              const SizedBox(width: 6),
+              const Expanded(
+                child: Text(
+                  'Lokasi GPS dipakai untuk peta sebaran penyakit di sekitarmu. Opsional — scan tetap jalan tanpa lokasi.',
+                  style: TextStyle(
+                      fontSize: 11.5, color: AppColors.textLight, height: 1.5),
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 16),
           Obx(() => PrimaryButton(
                 label: 'Mulai Scan',

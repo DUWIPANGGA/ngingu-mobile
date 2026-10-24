@@ -69,14 +69,15 @@ class Outbreak {
 
 class HeatmapPoint {
   const HeatmapPoint({
-    required this.province,
+    required this.kecamatan,
     required this.lat,
     required this.lng,
     this.cases = 0,
     this.topDisease,
   });
 
-  final String province;
+  /// Nama kecamatan (agregasi per kecamatan, fokus Kab. Indramayu).
+  final String kecamatan;
   final double lat;
   final double lng;
   final int cases;
@@ -85,7 +86,7 @@ class HeatmapPoint {
   factory HeatmapPoint.fromJson(dynamic json) {
     final j = json as Map<String, dynamic>;
     return HeatmapPoint(
-      province: (j['province'] as String?) ?? '-',
+      kecamatan: (j['kecamatan'] as String?) ?? '-',
       lat: (j['lat'] as num?)?.toDouble() ?? 0,
       lng: (j['lng'] as num?)?.toDouble() ?? 0,
       cases: (j['cases'] as num?)?.toInt() ?? 0,
@@ -94,15 +95,17 @@ class HeatmapPoint {
   }
 }
 
-/// Satu hasil scan yang punya lokasi tambak — marker individual di peta GIS
-/// (API.md §7.13 `GET /api/map/pins`, publik).
+/// Satu hasil scan yang punya koordinat (GPS scan / fallback kolam) — marker
+/// individual di peta GIS (API.md §7.13 `GET /api/map/pins`, publik).
+///
+/// Privasi (FR-07.3): endpoint tidak mengirim nama kolam / label lokasi /
+/// identitas pemilik — hanya penyakit dan hasil prediksi.
 class ScanPin {
   const ScanPin({
     required this.id,
     required this.lat,
     required this.lng,
-    this.pondName,
-    this.locationLabel,
+    this.kecamatan,
     this.diseaseId,
     this.diseaseName,
     this.severity,
@@ -114,8 +117,9 @@ class ScanPin {
   final int id;
   final double lat;
   final double lng;
-  final String? pondName;
-  final String? locationLabel;
+
+  /// Kecamatan hasil pemetaan koordinat scan (null bila di luar Kab. Indramayu).
+  final String? kecamatan;
   final int? diseaseId;
   final String? diseaseName;
   final String? severity;
@@ -133,8 +137,7 @@ class ScanPin {
       id: (j['id'] as num?)?.toInt() ?? 0,
       lat: (j['lat'] as num?)?.toDouble() ?? 0,
       lng: (j['lng'] as num?)?.toDouble() ?? 0,
-      pondName: j['pond_name'] as String?,
-      locationLabel: j['location_label'] as String?,
+      kecamatan: j['kecamatan'] as String?,
       diseaseId: (j['disease_id'] as num?)?.toInt(),
       diseaseName: j['disease_name'] as String?,
       severity: j['severity'] as String?,

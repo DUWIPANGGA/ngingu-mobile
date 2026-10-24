@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:get/get.dart';
@@ -138,8 +136,13 @@ class PondFormController extends GetxController {
           permission == LocationPermission.deniedForever) {
         return null;
       }
+      // geolocator 14: `timeLimit` pindah ke LocationSettings (parameter
+      // `locationSettings`); kegagalan GPS ditangkap catch → lokasi opsional.
       return await Geolocator.getCurrentPosition(
-          timeLimit: const Duration(seconds: 10));
+        locationSettings: const LocationSettings(
+          timeLimit: Duration(seconds: 10),
+        ),
+      );
     } catch (_) {
       return null;
     }

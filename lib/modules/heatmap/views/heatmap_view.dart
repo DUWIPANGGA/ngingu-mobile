@@ -10,8 +10,9 @@ import '../../../core/widgets/app_badges.dart';
 import '../../../core/widgets/app_feedback.dart';
 import '../controllers/heatmap_controller.dart';
 
-/// Peta sebaran penyakit (FR-07.3): heatmap titik per provinsi, marker
-/// individual tiap scan bergeolokasi (`GET /api/map/pins`, API.md §7.13) +
+/// Peta sebaran penyakit (FR-07.3): heatmap agregat **per kecamatan**
+/// (`GET /api/map/heatmap`, fokus Kab. Indramayu), marker individual tiap
+/// scan bergeolokasi (`GET /api/map/pins`, API.md §7.13, tanpa data pemilik) +
 /// feed "Laporan Terbaru" dari `GET /api/outbreaks`.
 class HeatmapView extends GetView<HeatmapController> {
   const HeatmapView({super.key});
@@ -583,7 +584,7 @@ class HeatmapView extends GetView<HeatmapController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        point.province,
+                        point.kecamatan,
                         style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
@@ -663,8 +664,13 @@ class HeatmapView extends GetView<HeatmapController> {
 
   Widget _selectedPinCard(ScanPin pin) {
     final color = AppColors.severity(pin.severity);
+    // Privasi: peta tidak memperlihatkan nama kolam/pemilik — cukup penyakit
+    // dan kecamatan hasil pemetaan koordinat scan.
+    final title = (pin.diseaseName ?? '').isNotEmpty
+        ? pin.diseaseName!
+        : 'Penyakit belum teridentifikasi';
     final subtitle = [
-      if ((pin.locationLabel ?? '').isNotEmpty) pin.locationLabel,
+      if ((pin.kecamatan ?? '').isNotEmpty) 'Kec. ${pin.kecamatan}',
       if ((pin.fishType ?? '').isNotEmpty) pin.fishType,
     ].join(' · ');
     return Positioned(
@@ -697,9 +703,7 @@ class HeatmapView extends GetView<HeatmapController> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        (pin.pondName ?? '').isNotEmpty
-                            ? pin.pondName!
-                            : 'Lokasi scan',
+                        title,
                         style: const TextStyle(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
@@ -709,7 +713,7 @@ class HeatmapView extends GetView<HeatmapController> {
                       ),
                       const SizedBox(height: 3),
                       Text(
-                        subtitle.isNotEmpty ? subtitle : 'Tanpa label lokasi',
+                        subtitle.isNotEmpty ? subtitle : 'Lokasi tidak diketahui',
                         style: const TextStyle(
                             fontSize: 12.5, color: AppColors.textSecondary),
                         maxLines: 2,
@@ -732,38 +736,19 @@ class HeatmapView extends GetView<HeatmapController> {
               ],
             ),
             const SizedBox(height: 8),
-            Wrap(
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              spacing: 8,
-              runSpacing: 6,
+            Row(
               children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SeverityBadge(severity: pin.severity ?? 'ringan', small: true),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Text(
-                        (pin.diseaseName ?? '').isNotEmpty
-                            ? pin.diseaseName!
-                            : 'Penyakit belum teridentifikasi',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w800,
-                            color: color),
-                      ),
-                    ),
-                  ],
-                ),
-                if (pin.confidenceScore > 0)
+                SeverityBadge(severity: pin.severity ?? 'ringan', small: true),
+                if (pin.confidenceScore > 0) ...[
+                  const SizedBox(width: 8),
                   Text(
                     'Keyakinan ${pin.confidenceScore.toStringAsFixed(1)}%',
-                    style: const TextStyle(
-                        fontSize: 12.5, color: AppColors.textSecondary),
+                    style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: color),
                   ),
+                ],
               ],
             ),
             const SizedBox(height: 6),
