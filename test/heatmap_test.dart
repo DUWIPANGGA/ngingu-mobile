@@ -39,7 +39,8 @@ void main() {
         'scanned_at': '2026-10-20T09:12:00+07:00',
       });
 
-      expect(pin.id, 421);
+      // id int lama tetap terbaca (toString) — payload produksi memakai UUID.
+      expect(pin.id, '421');
       expect(pin.lat, closeTo(-6.3275, 0.0001));
       expect(pin.lng, closeTo(108.3250, 0.0001));
       expect(pin.kecamatan, 'Indramayu');
@@ -50,8 +51,38 @@ void main() {
       expect(pin.hasValidCoords, isTrue);
     });
 
+    test('parses real production pin (UUID id, null pond fields)', () {
+      // Payload persis dari GET /api/map/pins produksi 2026-10-24 13:00.
+      // Regresi: id UUID string sempat membuat fromJson melempar karena
+      // model mengasumsikan id int, sehingga peta menampilkan banner
+      // "Titik scan tidak dapat dimuat".
+      final pin = ScanPin.fromJson({
+        'id': '01a16c7e-b945-7310-9b00-24596de9a5a4',
+        'lat': -6.334997,
+        'lng': 108.331618,
+        'pond_name': null,
+        'location_label': null,
+        'disease_id': 2,
+        'disease_name': 'Infeksi Bakteri Aeromonas (Aeromoniasis)',
+        'severity': 'berat',
+        'confidence_score': 70.2,
+        'fish_type': 'Nila',
+        'scanned_at': '2026-10-24 13:00:06',
+      });
+
+      expect(pin.id, '01a16c7e-b945-7310-9b00-24596de9a5a4');
+      expect(pin.lat, closeTo(-6.334997, 0.000001));
+      expect(pin.lng, closeTo(108.331618, 0.000001));
+      expect(pin.diseaseId, 2);
+      expect(pin.diseaseName, 'Infeksi Bakteri Aeromonas (Aeromoniasis)');
+      expect(pin.severity, 'berat');
+      expect(pin.confidenceScore, 70.2);
+      expect(pin.fishType, 'Nila');
+      expect(pin.hasValidCoords, isTrue);
+    });
+
     test('tolerates missing optional fields and flags bad coordinates', () {
-      final pin = ScanPin.fromJson({'id': 1, 'lat': 999, 'lng': 0});
+      final pin = ScanPin.fromJson({'id': 'abc', 'lat': 999, 'lng': 0});
       expect(pin.kecamatan, isNull);
       expect(pin.diseaseId, isNull);
       expect(pin.confidenceScore, 0);
@@ -62,7 +93,7 @@ void main() {
       final controller = HeatmapController();
       const point = HeatmapPoint(
           kecamatan: 'Indramayu', lat: -6.9, lng: 107.6, cases: 3);
-      const pin = ScanPin(id: 7, lat: -6.3, lng: 108.3);
+      const pin = ScanPin(id: '7', lat: -6.3, lng: 108.3);
 
       expect(controller.showClusters.value, isTrue);
       expect(controller.showPins.value, isTrue);
@@ -75,7 +106,7 @@ void main() {
       controller.selectPoint(point);
       controller.selectPin(pin);
       expect(controller.selectedPoint.value, isNull);
-      expect(controller.selectedPin.value?.id, 7);
+      expect(controller.selectedPin.value?.id, '7');
 
       controller.clearSelection();
       expect(controller.selectedPin.value, isNull);

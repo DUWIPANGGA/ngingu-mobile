@@ -114,7 +114,11 @@ class ScanPin {
     this.scannedAt,
   });
 
-  final int id;
+  /// UUID string dari fish_scans (backend memakai HasUuids) — BUKAN int.
+  /// Sebelumnya bertipe int sehingga payload produksi (id UUID) membuat
+  /// fromJson melempar dan halaman peta menampilkan "Data dari server
+  /// tidak dapat dibaca".
+  final String id;
   final double lat;
   final double lng;
 
@@ -134,7 +138,7 @@ class ScanPin {
   factory ScanPin.fromJson(dynamic json) {
     final j = json as Map<String, dynamic>;
     return ScanPin(
-      id: (j['id'] as num?)?.toInt() ?? 0,
+      id: j['id']?.toString() ?? '',
       lat: (j['lat'] as num?)?.toDouble() ?? 0,
       lng: (j['lng'] as num?)?.toDouble() ?? 0,
       kecamatan: j['kecamatan'] as String?,
