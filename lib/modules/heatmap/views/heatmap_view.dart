@@ -430,7 +430,10 @@ class HeatmapView extends GetView<HeatmapController> {
     return markers;
   }
 
-  /// Marker per scan (API.md §7.13) — pin berwarna sesuai severity penyakit.
+  /// Marker per scan (API.md §7.13) — lingkaran (radius) berwarna sesuai
+  /// severity penyakit, bukan ikon tanda lokasi (arahan desain 2026-10-24:
+  /// "penandanya jangan tanda lokasi, kaya radius warna sesuai keparahan
+  /// penyakit"). Diketuk tetap membuka kartu detail penyakit (selectPin).
   List<Marker> _pinMarkers() {
     final selected = controller.selectedPin.value;
     final markers = <Marker>[];
@@ -438,6 +441,7 @@ class HeatmapView extends GetView<HeatmapController> {
       if (!pin.hasValidCoords) continue;
       final isSelected = selected?.id == pin.id;
       final size = isSelected ? 40.0 : 32.0;
+      final color = AppColors.severity(pin.severity);
       markers.add(
         Marker(
           point: LatLng(pin.lat, pin.lng),
@@ -446,38 +450,22 @@ class HeatmapView extends GetView<HeatmapController> {
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onTap: () => controller.selectPin(pin),
-            child: Stack(
+            child: Container(
               alignment: Alignment.center,
-              children: [
-                if (isSelected)
-                  Container(
-                    width: size,
-                    height: size,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.45),
-                          blurRadius: 10,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: isSelected ? 1 : 0.88),
+                border: Border.all(
+                    color: isSelected ? AppColors.primaryDark : Colors.white,
+                    width: isSelected ? 3 : 2),
+                boxShadow: [
+                  BoxShadow(
+                    color: color.withValues(alpha: 0.45),
+                    blurRadius: 8,
+                    spreadRadius: 1.5,
                   ),
-                Icon(
-                  Icons.location_on_rounded,
-                  size: isSelected ? 34 : 28,
-                  color: AppColors.severity(pin.severity),
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.28),
-                      blurRadius: 5,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
